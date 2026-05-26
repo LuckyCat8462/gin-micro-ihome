@@ -94,7 +94,9 @@ func (e *House) GetHouseInfo(ctx context.Context, req *house.GetReq, resp *house
 
 func (e *House) GetHouseDetail(ctx context.Context, req *house.DetailReq, resp *house.DetailResp) error {
 	//根据houseId获取所有的返回数据
+	fmt.Println(req)
 	respData, err := model.GetHouseDetail(req.HouseId, req.UserName)
+
 	if err != nil {
 		resp.Errno = utils.RECODE_DATAERR
 		resp.Errmsg = utils.RecodeText(utils.RECODE_DATAERR)
@@ -126,8 +128,10 @@ func (e *House) GetIndexHouse(ctx context.Context, req *house.IndexReq, resp *ho
 }
 
 func (e *House) SearchHouse(ctx context.Context, req *house.SearchReq, resp *house.GetResp) error {
+	fmt.Println("req", req)
 	//根据传入的参数,查询符合条件的房屋信息
 	houseResp, err := model.SearchHouse(req.Aid, req.Sd, req.Ed, req.Sk)
+	fmt.Println("houseResp:", houseResp)
 	if err != nil {
 		resp.Errno = utils.RECODE_DATAERR
 		resp.Errmsg = utils.RecodeText(utils.RECODE_DATAERR)

@@ -1,9 +1,9 @@
 package Learning
 
 //启动redis指令
-//redis-cli -h 192.168.81.128 -p 6349
+//redis-cli -h 127.0.0.1 -p 6379
 //如果出现/452这种连续的乱码,说明出现了中文,想要查看的花,在启动redis时加上--raw的后缀
-//redis-cli -h 192.168.81.128 -p 6349 --raw
+//redis-cli -h 127.0.0.1 -p 6379 --raw
 
 //设置一个键值对
 //SET mykey myvalue

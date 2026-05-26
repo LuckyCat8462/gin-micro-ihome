@@ -1,0 +1,29 @@
+package main
+
+import (
+	"go-micro.dev/v5/registry/consul"
+	"order/handler"
+	"order/model"
+	pb "order/proto"
+
+	"go-micro.dev/v5"
+)
+
+func main() {
+	//初始化consul
+	consulReg := consul.NewConsulRegistry()
+	model.InitDb()
+	// Create service
+	service := micro.NewService(
+		micro.Name("micro_order"),
+		micro.Registry(consulReg),             //添加注册
+		micro.Address("127.0.0.1:12315"), //主动添加addr,防止其生成随机port
+		micro.Version("latest"),
+	)
+
+	// Register handler
+	pb.RegisterOrderHandler(service.Server(), handler.New())
+
+	// Run service
+	service.Run()
+}

@@ -1,4 +1,4 @@
-module gin_test01
+module gin-micro-ihome
 
 go 1.24.4
 

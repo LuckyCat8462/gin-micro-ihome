@@ -14,7 +14,7 @@ func main() {
 	//初始化容器
 	router := gin.Default()
 
-	store, _ := redis.NewStore(10, "tcp", "192.168.81.128:6379", "", "", []byte("secret"))
+	store, _ := redis.NewStore(10, "tcp", "127.0.0.1:6379", "", "", []byte("secret"))
 	//可以设置临时session
 	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
 	//使用容器

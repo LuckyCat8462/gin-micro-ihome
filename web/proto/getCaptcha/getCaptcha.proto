@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package getCaptcha;
 
-option go_package = "./proto;getCaptcha";
+option go_package = "./order;getCaptcha";
 
 service GetCaptcha {
 	rpc Call(Request) returns (Response) {}

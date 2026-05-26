@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v3.21.2
-// source: proto/getCaptcha.proto
+// source: order/getCaptcha.order
 
 package main
 
@@ -246,7 +246,7 @@ var File_proto_getCaptcha_proto protoreflect.FileDescriptor
 
 const file_proto_getCaptcha_proto_rawDesc = "" +
 	"\n" +
-	"\x16proto/getCaptcha.proto\x12\n" +
+	"\x16proto/getCaptcha.order\x12\n" +
 	"getCaptcha\"\x1b\n" +
 	"\aMessage\x12\x10\n" +
 	"\x03say\x18\x01 \x01(\tR\x03say\"\x1d\n" +
@@ -261,7 +261,7 @@ const file_proto_getCaptcha_proto_rawDesc = "" +
 	"\n" +
 	"GetCaptcha\x123\n" +
 	"\x04Call\x12\x13.getCaptcha.Request\x1a\x14.getCaptcha.Response\"\x00\x12I\n" +
-	"\x06Stream\x12\x1c.getCaptcha.StreamingRequest\x1a\x1d.getCaptcha.StreamingResponse\"\x000\x01B\x14Z\x12./proto;getCaptchab\x06proto3"
+	"\x06Stream\x12\x1c.getCaptcha.StreamingRequest\x1a\x1d.getCaptcha.StreamingResponse\"\x000\x01B\x14Z\x12./order;getCaptchab\x06proto3"
 
 var (
 	file_proto_getCaptcha_proto_rawDescOnce sync.Once

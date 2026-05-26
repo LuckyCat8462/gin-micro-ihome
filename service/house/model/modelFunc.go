@@ -3,10 +3,32 @@ package model
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"golang.org/x/net/context"
 	house "house/proto"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 )
+
+// 首页轮播使用的本地静态图（对应 web/view/images/）
+var indexLocalImages = []string{
+	"/home/images/home01.jpg",
+	"/home/images/home02.jpg",
+	"/home/images/home03.jpg",
+}
+
+// getLocalBannerImage 根据数据库 index_image_url 或序号映射到本地图片
+func getLocalBannerImage(index int, indexImageUrl string) string {
+	if indexImageUrl != "" {
+		name := filepath.Base(indexImageUrl)
+		for _, img := range []string{"home01.jpg", "home02.jpg", "home03.jpg"} {
+			if name == img || strings.Contains(indexImageUrl, img) {
+				return "/home/images/" + img
+			}
+		}
+	}
+	return indexLocalImages[index%len(indexLocalImages)]
+}
 
 // GetUserHouse 获取房源信息
 func GetUserHouse(userName string) ([]*house.Houses, error) {
@@ -30,7 +52,7 @@ func GetUserHouse(userName string) ([]*house.Houses, error) {
 		return nil, err
 	} else {
 		//测试用输出
-		fmt.Println("用户", user.Name, "存在房屋")
+		//fmt.Println("用户", user.Name, "存在房屋")
 	}
 
 	for _, v := range houses {
@@ -94,22 +116,26 @@ func AddHouse(request *house.Request) (int, error) {
 	houseInfo.AreaId = uint(areaId)
 
 	//request.Facility    所有的家具  房屋
-	for _, v := range request.Facility {
-		id, _ := strconv.Atoi(v)
-		var fac Facility
-		if err := GlobalConn.Where("id = ?", id).First(&fac).Error; err != nil {
-			fmt.Println("家具id错误", err)
-			return 0, err
-		}
-		//查询到了数据
-		context.TODO()
-		//houseInfo.Facilities = append(houseInfo.Facilities, &fac)
-	}
+	//for _, v := range request.Facility {
+	//	id, _ := strconv.Atoi(v)
+	//	fmt.Println(v)
+	//	var fac Facility
+	//	if err := GlobalConn.Where("id = ?", id).First(&fac).Error; err != nil {
+	//		fmt.Println("家具id错误", err)
+	//		return 0, err
+	//	}
+	//	//查询到了数据
+	//	context.TODO()
+	//	//houseInfo.Facilities = append(houseInfo.Facilities, &fac)
+	//}
 
 	if err := GlobalConn.Create(&houseInfo).Error; err != nil {
 		fmt.Println("插入房屋信息失败", err)
 		return 0, err
 	}
+
+	fmt.Println("新增房源", houseInfo)
+
 	return int(houseInfo.ID), nil
 }
 
@@ -139,19 +165,7 @@ func SaveHouseImg(houseId, imgPath string) error {
 	return GlobalConn.Create(&houseImg).Error
 }
 
-//获取当前用户发布房源
-
-func GetIndexHouse() ([]*house.Houses, error) {
-	fmt.Println("GetIndexHouse未完成")
-	return nil, nil
-}
-
-// SearchHouse // 搜索房屋
-func SearchHouse(areaId, sd, ed, sk string) ([]*house.Houses, error) {
-	fmt.Println("SearchHouse未完成")
-	return nil, nil
-}
-
+// GetHouseDetail 房屋详情
 func GetHouseDetail(houseId, userName string) (house.DetailData, error) {
 
 	var respData house.DetailData
@@ -164,6 +178,11 @@ func GetHouseDetail(houseId, userName string) (house.DetailData, error) {
 		fmt.Println("查询房屋信息错误", err)
 		return respData, err
 	}
+	//else {
+	//	//测试输出
+	//	//fmt.Println(houseInfo)
+	//}
+
 	{
 		houseDetail.Acreage = int32(houseInfo.Acreage)
 		houseDetail.Address = houseInfo.Address
@@ -177,64 +196,23 @@ func GetHouseDetail(houseId, userName string) (house.DetailData, error) {
 		houseDetail.RoomCount = int32(houseInfo.Room_count)
 		houseDetail.Title = houseInfo.Title
 		houseDetail.Unit = houseInfo.Unit
-		if houseInfo.Index_image_url != "" {
-			houseDetail.ImgUrls = append(houseDetail.ImgUrls, "http://192.168.137.81:8888/"+houseInfo.Index_image_url)
-		}
+		//if houseInfo.Index_image_url != "" {
+		//	houseDetail.ImgUrls = append(houseDetail.ImgUrls, "http://192.168.137.81:8888/"+houseInfo.Index_image_url)
+		//}
 	}
+	//fmt.Println("houseD", houseDetail)
 
-	////评论在order表
-	//var orders []OrderHouse
-	////GlobalConn.Model(&houseInfo)
-	//if err := GlobalConn.Model(&houseInfo).Related(&orders).Error; err != nil {
-	//	fmt.Println("查询房屋评论信息", err)
-	//	return respData, err
-	//}
-	//
-	////var comments []*house.CommentData
-	//for _, v := range orders {
-	//	var commentTemp house.CommentData
-	//	commentTemp.Comment = v.Comment
-	//	commentTemp.Ctime = v.CreatedAt.Format("2006-01-02 15:04:05")
-	//	var tempUser User
-	//	GlobalConn.Model(&v).Related(&tempUser)
-	//	commentTemp.UserName = tempUser.Name
-	//
-	//	houseDetail.Comments = append(houseDetail.Comments, &commentTemp)
-	//}
-
-	////获取房屋的家具信息  多对多查询
-	//var facs []Facility
-	//if err := GlobalConn.Model(&houseInfo).Related(&facs, "Facilities").Error; err != nil {
-	//	fmt.Println("查询房屋家具信息错误", err)
-	//	return respData, err
-	//}
-	//for _, v := range facs {
-	//	houseDetail.Facilities = append(houseDetail.Facilities, int32(v.Id))
-	//}
-
-	////获取副图片  幅图找不到算不算错
-	//var imgs []HouseImage
-	//if err := GlobalConn.Model(&houseInfo).Related(&imgs).Error; err != nil {
-	//	fmt.Println("该房屋只有主图", err)
-	//}
-	//
-	//for _, v := range imgs {
-	//	if len(imgs) != 0 {
-	//		houseDetail.ImgUrls = append(houseDetail.ImgUrls, "http://192.168.137.81:8888/"+v.Url)
-	//	}
-	//}
-
-	// //获取房屋所有者信息
-	//var user User
-	//if err := GlobalConn.Model(&houseInfo).Related(&user).Error; err != nil {
-	//	fmt.Println("查询房屋所有者信息错误", err)
-	//	return respData, err
-	//}
-	//houseDetail.UserName = user.Name
+	//获取房屋所有者信息
+	var user User
+	if err := GlobalConn.Where("id = ?", houseInfo.UserId).Find(&user).Error; err != nil {
+		fmt.Println("查询房屋所有者信息错误", err)
+		return respData, err
+	}
+	houseDetail.UserName = user.Name
 	//houseDetail.UserAvatar = "http://192.168.137.81:8888/" + user.Avatar_url
-	//houseDetail.UserId = int32(user.ID)
+	houseDetail.UserId = int32(user.ID)
 	//
-	//respData.House = &houseDetail
+	respData.House = &houseDetail
 
 	//获取当前浏览人信息
 	var nowUser User
@@ -242,92 +220,92 @@ func GetHouseDetail(houseId, userName string) (house.DetailData, error) {
 		fmt.Println("查询当前浏览人信息错误", err)
 		return respData, err
 	}
-	respData.UserId = int32(nowUser.ID)
+	//respData.UserId = int32(nowUser.ID)
+	respData.UserId = 50
+	fmt.Println("respData:", respData)
+
 	return respData, nil
 }
 
-//
-// // 获取房屋信息
+// 搜索房屋
+func SearchHouse(areaId, sd, ed, sk string) ([]*house.Houses, error) {
+	var houseInfos []House
 
-// func GetIndexHouse() ([]*house.Houses, error) {
-//
-//		var housesResp []*house.Houses
-//
-//		var houses []House
-//		if err := GlobalConn.Limit(5).Find(&houses).Error; err != nil {
-//			fmt.Println("获取房屋信息失败", err)
-//			return nil, err
-//		}
-//
-//		for _, v := range houses {
-//			var houseTemp house.Houses
-//			houseTemp.Address = v.Address
-//			//根据房屋信息获取地域信息
-//			var area Area
-//			var user User
-//
-//			GlobalConn.Model(&v).Related(&area).Related(&user)
-//
-//			houseTemp.AreaName = area.Name
-//			houseTemp.Ctime = v.CreatedAt.Format("2006-01-02 15:04:05")
-//			houseTemp.HouseId = int32(v.ID)
-//			houseTemp.ImgUrl = "http://192.168.137.81:8888/" + v.Index_image_url
-//			houseTemp.OrderCount = int32(v.Order_count)
-//			houseTemp.Price = int32(v.Price)
-//			houseTemp.RoomCount = int32(v.Room_count)
-//			houseTemp.Title = v.Title
-//			houseTemp.UserAvatar = "http://192.168.137.81:8888/" + user.Avatar_url
-//
-//			housesResp = append(housesResp, &houseTemp)
-//		}
-//
-//		return housesResp, nil
-//	}
-//
+	//   minDays  <  (结束时间  -  开始时间) <  max_days
+	//计算一个差值  先把string类型转为time类型
+	sdTime, _ := time.Parse("2006-01-02", sd)
+	edTime, _ := time.Parse("2006-01-02", ed)
+	dur := edTime.Sub(sdTime)
+	fmt.Println("durtime:", dur)
 
-//func SearchHouse(areaId, sd, ed, sk string) ([]*house.Houses, error) {
-//	var houseInfos []House
-//
-//	//   minDays  <  (结束时间  -  开始时间) <  max_days
-//	//计算一个差值  先把string类型转为time类型
-//	sdTime, _ := time.Parse("2006-01-02", sd)
-//	edTime, _ := time.Parse("2006-01-02", ed)
-//	dur := edTime.Sub(sdTime)
-//
-//	err := GlobalConn.Where("area_id = ?", areaId).
-//		Where("min_days < ?", dur.Hours()/24).
-//		Where("max_days > ?", dur.Hours()/24).
-//		Order("created_at desc").Find(&houseInfos).Error
-//	if err != nil {
-//		fmt.Println("搜索房屋失败", err)
-//		return nil, err
-//	}
-//
-//	//获取[]*house.Houses
-//	var housesResp []*house.Houses
-//
-//	for _, v := range houseInfos {
-//		var houseTemp house.Houses
-//		houseTemp.Address = v.Address
-//		//根据房屋信息获取地域信息
-//		var area Area
-//		var user User
-//
-//		GlobalConn.Model(&v).Related(&area).Related(&user)
-//
-//		houseTemp.AreaName = area.Name
-//		houseTemp.Ctime = v.CreatedAt.Format("2006-01-02 15:04:05")
-//		houseTemp.HouseId = int32(v.ID)
-//		houseTemp.ImgUrl = "http://192.168.137.81:8888/" + v.Index_image_url
-//		houseTemp.OrderCount = int32(v.Order_count)
-//		houseTemp.Price = int32(v.Price)
-//		houseTemp.RoomCount = int32(v.Room_count)
-//		houseTemp.Title = v.Title
-//		houseTemp.UserAvatar = "http://192.168.137.81:8888/" + user.Avatar_url
-//
-//		housesResp = append(housesResp, &houseTemp)
-//
-//	}
-//
-//	return housesResp, nil
-//}
+	err := GlobalConn.Where("area_id = ?", areaId).
+		Order("created_at desc").Find(&houseInfos).Error
+	if err != nil {
+		fmt.Println("搜索房屋失败", err)
+		return nil, err
+	}
+	fmt.Println("houseinfos", houseInfos)
+
+	//获取[]*house.Houses
+	var housesResp []*house.Houses
+
+	for _, v := range houseInfos {
+		var houseTemp house.Houses
+		houseTemp.Address = v.Address
+		//根据房屋信息获取地域信息
+		//var user User
+		var area Area
+
+		//GlobalDB.Model(&v).Related(&area).Related(&user)
+
+		houseTemp.AreaName = area.Name
+		houseTemp.Ctime = v.CreatedAt.Format("2006-01-02 15:04:05")
+		houseTemp.HouseId = int32(v.ID)
+		houseTemp.OrderCount = int32(v.Order_count)
+		houseTemp.Price = int32(v.Price)
+		houseTemp.RoomCount = int32(v.Room_count)
+		houseTemp.Title = v.Title
+		//houseTemp.ImgUrl = "http://192.168.137.81:8888/"+v.Index_image_url
+		//houseTemp.UserAvatar = "http://192.168.137.81:8888/"+user.Avatar_url
+
+		housesResp = append(housesResp, &houseTemp)
+
+	}
+
+	return housesResp, nil
+}
+
+// 获取轮播图房屋信息
+func GetIndexHouse() ([]*house.Houses, error) {
+
+	var housesResp []*house.Houses
+
+	var houses []House
+	if err := GlobalConn.Order("created_at desc").Limit(3).Find(&houses).Error; err != nil {
+		fmt.Println("获取房屋信息失败", err)
+		return nil, err
+	}
+
+	for i, v := range houses {
+		var houseTemp house.Houses
+		houseTemp.Address = v.Address
+		var area Area
+		if v.AreaId > 0 {
+			GlobalConn.First(&area, v.AreaId)
+		}
+		houseTemp.AreaName = area.Name
+		houseTemp.Ctime = v.CreatedAt.Format("2006-01-02 15:04:05")
+		houseTemp.HouseId = int32(v.ID)
+		// 读取 DB 中的 index_image_url，映射到 web/view/images 下 home01~03
+		houseTemp.ImgUrl = getLocalBannerImage(i, v.Index_image_url)
+		houseTemp.OrderCount = int32(v.Order_count)
+		houseTemp.Price = int32(v.Price)
+		houseTemp.RoomCount = int32(v.Room_count)
+		houseTemp.Title = v.Title
+
+		housesResp = append(housesResp, &houseTemp)
+	}
+	fmt.Println(housesResp)
+
+	return housesResp, nil
+}

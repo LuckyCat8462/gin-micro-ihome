@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v3.21.2
-// source: register.proto
+// source: register.order
 
 package register
 
@@ -258,7 +258,7 @@ var File_register_proto protoreflect.FileDescriptor
 
 const file_register_proto_rawDesc = "" +
 	"\n" +
-	"\x0eregister.proto\x12\bregister\"[\n" +
+	"\x0eregister.order\x12\bregister\"[\n" +
 	"\n" +
 	"RegRequest\x12\x16\n" +
 	"\x06mobile\x18\x01 \x01(\tR\x06mobile\x12\x1a\n" +

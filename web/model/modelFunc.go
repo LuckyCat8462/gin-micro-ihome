@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"gin-micro-ihome/web/conf"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -16,14 +17,14 @@ func InitRedis() {
 		MaxConnLifetime: 60 * 5,
 		IdleTimeout:     60,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", "192.168.81.128:6379")
+			return redis.Dial("tcp", conf.RedisAddr)
 		},
 	}
 }
 
 func SaveImgCode(code, uuid string) error {
 	// 1. 链接数据库
-	conn, err := redis.Dial("tcp", "192.168.6.108:6379")
+	conn, err := redis.Dial("tcp", conf.RedisAddr)
 	if err != nil {
 		fmt.Println("redis Dial err:", err)
 		return err
@@ -39,7 +40,7 @@ func SaveImgCode(code, uuid string) error {
 // 校验图片验证码
 func CheckImgCode(uuid, imgCode string) bool {
 	// 链接 redis --- 从链接池中获取链接
-	conn, err := redis.Dial("tcp", "192.168.6.108:6379")
+	conn, err := redis.Dial("tcp", conf.RedisAddr)
 	if err != nil {
 		fmt.Println("redis.Dial err:", err)
 		return false

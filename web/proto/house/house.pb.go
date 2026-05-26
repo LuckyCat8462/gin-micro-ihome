@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v3.21.2
-// source: proto/house.proto
+// source: order/house.order
 
 package house
 
@@ -1215,7 +1215,7 @@ var File_proto_house_proto protoreflect.FileDescriptor
 
 const file_proto_house_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/house.proto\x12\x05house\"M\n" +
+	"\x11proto/house.order\x12\x05house\"M\n" +
 	"\tSearchReq\x12\x10\n" +
 	"\x03aid\x18\x01 \x01(\tR\x03aid\x12\x0e\n" +
 	"\x02sd\x18\x02 \x01(\tR\x02sd\x12\x0e\n" +
@@ -1325,7 +1325,7 @@ const file_proto_house_proto_rawDesc = "" +
 	"\fGetHouseInfo\x12\r.house.GetReq\x1a\x0e.house.GetResp\"\x00\x127\n" +
 	"\x0eGetHouseDetail\x12\x10.house.DetailReq\x1a\x11.house.DetailResp\"\x00\x122\n" +
 	"\rGetIndexHouse\x12\x0f.house.IndexReq\x1a\x0e.house.GetResp\"\x00\x121\n" +
-	"\vSearchHouse\x12\x10.house.SearchReq\x1a\x0e.house.GetResp\"\x00B\x0fZ\r./proto;houseb\x06proto3"
+	"\vSearchHouse\x12\x10.house.SearchReq\x1a\x0e.house.GetResp\"\x00B\x0fZ\r./order;houseb\x06proto3"
 
 var (
 	file_proto_house_proto_rawDescOnce sync.Once

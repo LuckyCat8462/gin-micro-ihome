@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	"gin_test01/web/conf"
+	"gin-micro-ihome/web/conf"
 	_ "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

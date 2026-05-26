@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"getCaptcha/conf"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -14,7 +15,7 @@ import (
 // 存储图片id 到redis数据库
 func SaveImageCode(code, uuid string) error {
 	//	1.连接数据库
-	conn, err := redis.Dial("tcp", "192.168.81.128:6379")
+	conn, err := redis.Dial("tcp", conf.RedisAddr)
 	if err != nil {
 		fmt.Println(err)
 		return err

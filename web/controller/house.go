@@ -4,18 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gin_test01/web/model"
-	getCaptcha "gin_test01/web/proto/getCaptcha"
-
-	houseMicro "gin_test01/web/proto/house"
-	registerMicro "gin_test01/web/proto/register"
-	userMicro "gin_test01/web/proto/user"
-	"gin_test01/web/utils"
+	"gin-micro-ihome/web/conf"
+	"gin-micro-ihome/web/model"
+	getCaptcha "gin-micro-ihome/web/proto/getCaptcha"
+	houseMicro "gin-micro-ihome/web/proto/house"
+	orderMicro "gin-micro-ihome/web/proto/order"
+	registerMicro "gin-micro-ihome/web/proto/register"
+	userMicro "gin-micro-ihome/web/proto/user"
+	"gin-micro-ihome/web/utils"
 	"github.com/afocus/captcha"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
-	"github.com/tedcy/fdfs_client"
 	"image/png"
 	"net/http"
 	"path"
@@ -32,7 +32,8 @@ func GetSession(ctx *gin.Context) {
 		resp["errno"] = utils.RECODE_SESSIONERR
 		resp["errmsg"] = utils.RecodeText(utils.RECODE_SESSIONERR)
 	} else {
-		fmt.Println("---GetSession拿到了---")
+		//测试输出
+		//fmt.Println("---GetSession拿到了---")
 		resp["errno"] = utils.RECODE_OK
 		resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
 
@@ -41,7 +42,8 @@ func GetSession(ctx *gin.Context) {
 		}
 		nameData.Name = userName.(string)
 		resp["data"] = nameData
-		fmt.Println("用户名：", nameData)
+		//测试输出
+		//fmt.Println("用户名：", nameData)
 	}
 
 	ctx.JSON(http.StatusOK, resp)
@@ -121,14 +123,15 @@ func GetArea(ctx *gin.Context) {
 
 	// 从缓存redis 中, 获取数据
 	//conn := model.RedisPool.Get()
-	conn, err := redis.Dial("tcp", "192.168.81.128:6379")
+	conn, err := redis.Dial("tcp", conf.RedisAddr)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	// 当初使用 "字节切片" 存入, 现在使用 切片类型接收
 	areaData, _ := redis.Bytes(conn.Do("get", "areaData"))
-	fmt.Println("house.go-GetArea函数：获取地址信息")
+	//测试提示
+	//fmt.Println("house.go-GetArea函数：获取地址信息")
 	// 没有从 Redis 中获取到数据
 	if len(areaData) == 0 {
 		fmt.Println("从 MySQL 中 获取数据...")
@@ -138,7 +141,8 @@ func GetArea(ctx *gin.Context) {
 		conn.Do("set", "areaData", areaBuf)
 
 	} else {
-		fmt.Println("从 Redis 中 获取数据...")
+		////测试输出
+		//fmt.Println("从 Redis 中 获取数据...")
 		// redis 中有数据
 		json.Unmarshal(areaData, &areas)
 	}
@@ -261,7 +265,7 @@ func GetUserInfo(ctx *gin.Context) {
 	temp["mobile"] = user.Mobile
 	temp["real_name"] = user.Real_name
 	temp["id_card"] = user.Id_card
-	temp["avatar_url"] = "http://192.168.81.128:8089" + user.Avatar_url
+	temp["avatar_url"] = user.Avatar_url
 
 	resp["data"] = temp
 }
@@ -305,39 +309,50 @@ func PutUserInfo(ctx *gin.Context) {
 
 // 上传头像
 func PostAvater(ctx *gin.Context) {
-	////	获取图片文件,静态文件
+	//	获取图片文件,静态文件
 	file, _ := ctx.FormFile("avatar")
-	////	上传文件到项目中
-	//err := ctx.SaveUploadedFile(FileHeader, "test/"+FileHeader.Filename)
-	//fmt.Println(err)
-
-	//上传文件到fdfs中
-	clt, _ := fdfs_client.NewClientWithConfig("/etc/fdfs/client.conf")
-	//打开文件，读取文件内容
-	f, _ := file.Open()
-
-	buf := make([]byte, file.Size)
-	f.Read(buf)
-	//go语言根据文件名获取文件后缀
-	fileExt := path.Ext(file.Filename) //传文件名
-	//按字节流上传图片内容
-	remoteId, _ := clt.UploadByBuffer(buf, fileExt[1:]) //fileExt是一个切片，所以可以从下标1取
-
-	//获取session，得到当前用户
-	userName := sessions.Default(ctx).Get("userName")
-
-	//根据用户名,更新用户头像
-	model.UpdateAvatar(userName.(string), remoteId)
-
-	resp := make(map[string]interface{})
-	resp["errno"] = "0"
-	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
-
-	temp := make(map[string]interface{})
-	temp["avatar_url"] = "http://192.168.81.128:8089" + remoteId
-
-	resp["data"] = temp
-	ctx.JSON(http.StatusOK, resp)
+	//上传文件到项目中
+	err := ctx.SaveUploadedFile(file, "test/"+file.Filename)
+	fmt.Println(err)
+	//// 检查文件大小 (限制为 10MB)
+	//if file.Size > 10<<20 {
+	//	ctx.JSON(http.StatusBadRequest, gin.H{
+	//		"error": "文件大小不能超过 10MB",
+	//	})
+	//	return
+	//}
+	//filepath01 := "test/" + file.Filename
+	//
+	//////	上传文件到项目中
+	////err := ctx.SaveUploadedFile(FileHeader, "test/"+FileHeader.Filename)
+	////fmt.Println(err)
+	////上传文件到fdfs中
+	////clt, _ := fdfs_client.NewClientWithConfig("/etc/fdfs/client.conf")
+	////打开文件，读取文件内容
+	////f, _ := file.Open()
+	////
+	////buf := make([]byte, file.Size)
+	////f.Read(buf)
+	//////go语言根据文件名获取文件后缀
+	////fileExt := path.Ext(file.Filename) //传文件名
+	//////按字节流上传图片内容
+	////remoteId, _ := clt.UploadByBuffer(buf, fileExt[1:]) //fileExt是一个切片，所以可以从下标1取
+	//
+	////获取session，得到当前用户
+	//userName := sessions.Default(ctx).Get("userName")
+	//
+	////根据用户名,更新用户头像
+	//model.UpdateAvatar(userName.(string), filepath01)
+	//
+	//resp := make(map[string]interface{})
+	//resp["errno"] = "0"
+	//resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
+	//
+	//temp := make(map[string]interface{})
+	//temp["avatar_url"] = filepath01
+	//
+	//resp["data"] = temp
+	//ctx.JSON(http.StatusOK, resp)
 }
 
 type AuthStu struct {
@@ -441,7 +456,8 @@ func PostHouses(ctx *gin.Context) {
 func GetUserHouses(ctx *gin.Context) {
 	//获取用户名
 	userName := sessions.Default(ctx).Get("userName")
-	fmt.Println("GetUserHouses函数", userName)
+	//测试输出
+	//fmt.Println("GetUserHouses函数", userName)
 	//微服务
 	microService := utils.InitMicro()
 	microClient := houseMicro.NewHouseService("micro_house", microService.Client())
@@ -498,6 +514,7 @@ func PostHousesImage(ctx *gin.Context) {
 func GetHouseInfo(ctx *gin.Context) {
 	//获取数据
 	houseId := ctx.Param("id")
+
 	//校验数据
 	if houseId == "" {
 		fmt.Println("获取数据错误")
@@ -508,9 +525,164 @@ func GetHouseInfo(ctx *gin.Context) {
 	microService := utils.InitMicro()
 	microClient := houseMicro.NewHouseService("micro_house", microService.Client())
 	//调用远程服务
+
 	resp, _ := microClient.GetHouseDetail(context.TODO(), &houseMicro.DetailReq{
 		HouseId:  houseId,
 		UserName: userName.(string),
+	})
+	fmt.Println("detailresp:", resp)
+
+	//返回数据
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// 搜索房屋
+func GetHouses(ctx *gin.Context) {
+
+	//获取数据
+	fmt.Println("测试开始")
+	//areaId
+	aid := "13"
+	//start day
+	sd := "2025-8-10"
+	//end day
+	ed := "2025-8-11"
+
+	//areaId
+	//aid := ctx.Query("aid")
+	//fmt.Println("aid:", aid)
+	////start day
+	//sd := ctx.Query("sd")
+	////end day
+	//ed := ctx.Query("ed")
+	//排序方式
+	sk := ctx.Query("sk")
+	//page  第几页
+	//ctx.Query("p")
+	//校验数据
+	if aid == "" || sd == "" || ed == "" {
+		fmt.Println("传入数据不完整")
+		return
+	}
+
+	//处理数据   服务端  把字符串转换为时间格式,使用函数time.Parse()  第一个参数是转换模板,需要转换的二字符串,两者格式一致
+	/*sdTime ,_:=time.Parse("2006-01-02 15:04:05",sd+" 00:00:00")
+	edTime,_ := time.Parse("2006-01-02",ed)*/
+
+	/*sdTime,_ :=time.Parse("2006-01-02",sd)
+	edTime,_ := time.Parse("2006-01-02",ed)
+	d := edTime.Sub(sdTime)
+	fmt.Println(d.Hours())*/
+	microService := utils.InitMicro()
+	microClient := houseMicro.NewHouseService("micro_house", microService.Client())
+	//调用远程服务
+	resp, _ := microClient.SearchHouse(context.TODO(), &houseMicro.SearchReq{
+		Aid: aid,
+		Sd:  sd,
+		Ed:  ed,
+		Sk:  sk,
+	})
+	fmt.Println(resp)
+	//返回数据
+	ctx.JSON(http.StatusOK, resp)
+
+}
+
+// 首页轮播图
+func GetIndex(ctx *gin.Context) {
+	//处理数据
+	microService := utils.InitMicro()
+	microClient := houseMicro.NewHouseService("micro_house", microService.Client())
+	//调用服务
+	resp, _ := microClient.GetIndexHouse(context.TODO(), &houseMicro.IndexReq{})
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+type OrderStu struct {
+	EndDate   string `json:"end_date"`
+	HouseId   string `json:"house_id"`
+	StartDate string `json:"start_date"`
+}
+
+// 下订单
+func PostOrders(ctx *gin.Context) {
+	//获取数据
+	var order OrderStu
+	err := ctx.Bind(&order)
+
+	//校验数据
+	if err != nil {
+		fmt.Println("获取数据错误", err)
+		return
+	}
+	//获取用户名
+	userName := sessions.Default(ctx).Get("userName")
+	fmt.Println("orderusername", userName)
+	//处理数据  服务端
+	microService := utils.InitMicro()
+	microClient := orderMicro.NewOrderService("micro_order", microService.Client())
+	//调用服务
+	resp, _ := microClient.CreateOrder(context.TODO(), &orderMicro.Request{
+		StartDate: order.StartDate,
+		EndDate:   order.EndDate,
+		HouseId:   order.HouseId,
+		UserName:  userName.(string),
+	})
+
+	//返回数据
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// 获取订单信息
+func GetUserOrder(ctx *gin.Context) {
+	//获取get请求传参
+	role := ctx.Query("role")
+	//校验数据
+	if role == "" {
+		fmt.Println("获取数据失败")
+		return
+	}
+
+	//处理数据  服务端
+	microService := utils.InitMicro()
+	microClient := orderMicro.NewOrderService("micro_order", microService.Client())
+	//调用远程服务
+	resp, _ := microClient.GetOrderInfo(context.TODO(), &orderMicro.GetReq{
+		Role:     role,
+		UserName: sessions.Default(ctx).Get("userName").(string),
+	})
+	fmt.Println("resp:", resp)
+	//返回数据
+	ctx.JSON(http.StatusOK, resp)
+}
+
+type StatusStu struct {
+	Action string `json:"action"`
+	Reason string `json:"reason"`
+}
+
+// 更新订单状态
+func PutOrders(ctx *gin.Context) {
+	//获取数据
+	id := ctx.Param("id")
+	var statusStu StatusStu
+	err := ctx.Bind(&statusStu)
+
+	//校验数据
+	if err != nil || id == "" {
+		fmt.Println("获取数据错误", err)
+		return
+	}
+	//处理数据  服务端
+	microService := utils.InitMicro()
+	microClient := orderMicro.NewOrderService("micro_order", microService.Client())
+	//调用元和产能服务
+	resp, _ := microClient.UpdateStatus(context.TODO(), &orderMicro.UpdateReq{
+		Action: statusStu.Action,
+		Reason: statusStu.Reason,
+		Id:     id,
 	})
 
 	//返回数据

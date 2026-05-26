@@ -14,6 +14,6 @@ func main() {
 		return
 	}
 	//上传文件名
-	resp, err := clt.UploadByFilename("/home/neko/Learning/WorkTools/Go_WorkSapce/src/gin_test01/web/test/p1.jpg")
+	resp, err := clt.UploadByFilename("/home/neko/Learning/WorkTools/Go_WorkSapce/src/gin-micro-ihome/web/test/p1.png")
 	fmt.Println("上传错误", resp, err)
 }

@@ -36,8 +36,8 @@ func (e *Register) Register(ctx context.Context, req *register.RegRequest, rsp *
 // 登录
 func (e *Register) Login(ctx context.Context, req *register.RegRequest, rsp *register.RegResponse) error {
 	//req数据测试
-	fmt.Println("---微服务登录功能测试-register.go-login函数：")
-	fmt.Println("req数据:", req)
+	//fmt.Println("---微服务登录功能测试-register.go-login函数：")
+	//fmt.Println("req数据:", req)
 
 	//数据库操作
 	userName, err := model.Login(req.Mobile, req.Password)
@@ -47,7 +47,7 @@ func (e *Register) Login(ctx context.Context, req *register.RegRequest, rsp *reg
 		rsp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
 	} else {
 		//正常登录
-		fmt.Println("成功登录，loginUser:", userName)
+		//fmt.Println("成功登录，loginUser:", userName)
 		rsp.Errno = utils.RECODE_OK
 		rsp.Errmsg = utils.RecodeText(utils.RECODE_OK)
 		rsp.Name = userName

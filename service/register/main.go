@@ -17,7 +17,7 @@ func main() {
 	service := micro.NewService(
 		micro.Name("micro_register"),
 		micro.Registry(consulReg),             //添加注册
-		micro.Address("192.168.81.128:12312"), //主动添加addr,防止其生成随机port
+		micro.Address("127.0.0.1:12312"), //主动添加addr,防止其生成随机port
 		micro.Version("latest"),
 	)
 

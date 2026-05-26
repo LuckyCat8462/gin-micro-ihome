@@ -7,7 +7,7 @@ import (
 
 	//_ "github.com/go-sql-driver/mysql"
 	//"_"表示不直接使用包，底层连接要使用
-	_ "gin_test01/web/test2"
+	_ "gin-micro-ihome/web/test2"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package house;
 
-option go_package = "./proto;house";
+option go_package = "./order;house";
 
 service House {
 	rpc PubHouse(Request) returns (Response) {};

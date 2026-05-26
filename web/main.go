@@ -1,8 +1,9 @@
 package main
 
 import (
-	"gin_test01/web/controller"
-	"gin_test01/web/model"
+	"gin-micro-ihome/web/conf"
+	"gin-micro-ihome/web/controller"
+	"gin-micro-ihome/web/model"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
@@ -33,8 +34,7 @@ func main() {
 	router := gin.Default()
 
 	//初始化容器
-	//redis.NewStore(10, "tcp", "192.168.81.128:3479", "", "", []byte("secret"))
-	store, _ := redis.NewStore(10, "tcp", "192.168.81.128:6379", "", "", []byte("secret"))
+	store, _ := redis.NewStore(10, "tcp", conf.RedisAddr, "", "", []byte("secret"))
 	//使用容器
 	router.Use(sessions.Sessions("loginSession", store)) //使用中间件--指定容器
 
@@ -50,6 +50,8 @@ func main() {
 		r1.POST("/users", controller.PostReg)
 		r1.GET("/areas", controller.GetArea)
 		r1.POST("/sessions", controller.PostLogin)
+		//展示首页轮播图
+		r1.GET("/house/index", controller.GetIndex)
 
 		r1.Use(LoginFilter()) //调用中间件--下方的路由都不需要校验session了,可以直接获取数据
 		r1.DELETE("session", controller.DeleteSession)
@@ -70,6 +72,15 @@ func main() {
 		r1.POST("/houses/:id/images", controller.PostHousesImage)
 		//展示房屋详情
 		r1.GET("/houses/:id", controller.GetHouseInfo)
+		//搜索房屋
+		r1.GET("/houses", controller.GetHouses)
+
+		//提交订单
+		r1.POST("/orders", controller.PostOrders)
+		//获取订单
+		r1.GET("/user/orders", controller.GetUserOrder)
+		//同意/拒绝订单
+		r1.PUT("/orders/:id/status", controller.PutOrders)
 
 	}
 
