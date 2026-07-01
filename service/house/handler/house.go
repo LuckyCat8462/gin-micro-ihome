@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
-	"house/model"
 	house "house/proto"
+	houseservice "house/service"
 	"house/utils"
 	"strconv"
 )
@@ -17,8 +17,7 @@ func New() *House {
 }
 
 func (e *House) PubHouse(ctx context.Context, req *house.Request, rsp *house.Response) error {
-	//上传房屋业务  把获取到的房屋数据插入数据库
-	houseId, err := model.AddHouse(req)
+	houseId, err := houseservice.PublishHouse(req)
 	fmt.Println(req)
 	fmt.Println("pubHouse")
 
@@ -52,8 +51,7 @@ func (e *House) UploadHouseImg(ctx context.Context, req *house.ImgReq, resp *hou
 	//	return nil
 	//}
 	//
-	////把凭证存储到数据库中
-	//err = model.SaveHouseImg(req.HouseId, fdfsResp.RemoteFileId)
+	//err = houseservice.UploadHouseImage(req.HouseId, fdfsResp.RemoteFileId)
 	//if err != nil {
 	//	resp.Errno = utils.RECODE_DBERR
 	//	resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
@@ -72,10 +70,7 @@ func (e *House) UploadHouseImg(ctx context.Context, req *house.ImgReq, resp *hou
 }
 
 func (e *House) GetHouseInfo(ctx context.Context, req *house.GetReq, resp *house.GetResp) error {
-	//根据用户名获取所有的房屋数据
-	houseInfos, err := model.GetUserHouse(req.UserName)
-	//测试用输出
-	//fmt.Println("houseInfos", houseInfos)
+	houseInfos, err := houseservice.GetUserHouseList(req.UserName)
 	if err != nil {
 		resp.Errno = utils.RECODE_DBERR
 		resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
@@ -93,9 +88,8 @@ func (e *House) GetHouseInfo(ctx context.Context, req *house.GetReq, resp *house
 }
 
 func (e *House) GetHouseDetail(ctx context.Context, req *house.DetailReq, resp *house.DetailResp) error {
-	//根据houseId获取所有的返回数据
 	fmt.Println(req)
-	respData, err := model.GetHouseDetail(req.HouseId, req.UserName)
+	respData, err := houseservice.GetHouseDetail(req.HouseId, req.UserName)
 
 	if err != nil {
 		resp.Errno = utils.RECODE_DATAERR
@@ -111,8 +105,7 @@ func (e *House) GetHouseDetail(ctx context.Context, req *house.DetailReq, resp *
 }
 
 func (e *House) GetIndexHouse(ctx context.Context, req *house.IndexReq, resp *house.GetResp) error {
-	//获取房屋信息
-	houseResp, err := model.GetIndexHouse()
+	houseResp, err := houseservice.GetIndexHouseList()
 	if err != nil {
 		resp.Errno = utils.RECODE_DBERR
 		resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
@@ -129,8 +122,7 @@ func (e *House) GetIndexHouse(ctx context.Context, req *house.IndexReq, resp *ho
 
 func (e *House) SearchHouse(ctx context.Context, req *house.SearchReq, resp *house.GetResp) error {
 	fmt.Println("req", req)
-	//根据传入的参数,查询符合条件的房屋信息
-	houseResp, err := model.SearchHouse(req.Aid, req.Sd, req.Ed, req.Sk)
+	houseResp, err := houseservice.GetHouseList(req.Aid, req.Sd, req.Ed, req.Sk)
 	fmt.Println("houseResp:", houseResp)
 	if err != nil {
 		resp.Errno = utils.RECODE_DATAERR
