@@ -1,2 +1,5 @@
 .idea/
-.cursorrules  
+.cursorrules
+docs/
+logs/
+.runtime/

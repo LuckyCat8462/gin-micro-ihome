@@ -8,15 +8,19 @@ import (
 	house "house/proto"
 
 	"github.com/gomodule/redigo/redis"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
-	houseListKey    = "houseList"
-	indexHouseKey   = "indexHouse"
-	houseDetailKey  = "houseDetail"
+	houseListKey   = "houseList"
+	indexHouseKey  = "indexHouse:v3"
+	houseDetailKey = "houseDetail:v2"
 )
 
-var ErrCacheMiss = errors.New("cache miss")
+var (
+	ErrCacheMiss    = errors.New("cache miss")
+	houseLoadGroup  singleflight.Group
+)
 
 func dialRedis() (redis.Conn, error) {
 	return redis.Dial("tcp", conf.RedisAddr)
@@ -65,6 +69,35 @@ func setCache(key string, houses []*house.Houses, expire int) error {
 	}
 	_, err = conn.Do("SET", key, buf, "EX", expire)
 	return err
+}
+
+// getOrLoadHouses Cache-Aside + singleflight，同一 key 过期时仅一个请求穿透 MySQL
+func getOrLoadHouses(key string, expire int, loader func() ([]*house.Houses, error)) ([]*house.Houses, error) {
+	if cached, err := getFromCache(key); err == nil {
+		fmt.Println("从 Redis 获取", key)
+		return cached, nil
+	}
+
+	v, err, shared := houseLoadGroup.Do(key, func() (interface{}, error) {
+		if cached, err := getFromCache(key); err == nil {
+			return cached, nil
+		}
+		data, err := loader()
+		if err != nil {
+			return nil, err
+		}
+		if err := setCache(key, data, expire); err != nil {
+			fmt.Println("写入缓存失败", key, err)
+		}
+		return data, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if shared {
+		fmt.Println("singleflight 等待共享结果", key)
+	}
+	return v.([]*house.Houses), nil
 }
 
 func getDetailFromCache(key string) (*house.DetailData, error) {

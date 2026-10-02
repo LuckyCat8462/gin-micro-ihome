@@ -15,18 +15,21 @@
 </head>
 <body>
     <div class="container">
-        <div class="top-bar">
-            <img class="logo fl" src="./images/logo@128x59.png">
-            <div class="register-login fr">
-                <a class="btn top-btn btn-theme" href="./register.html" style="float:right">注册</a>
-                <a class="btn top-btn btn-theme" href="./login.html" style="float:right">登录</a>
+        <div class="site-header">
+            <a class="site-logo" href="/home/index.html"><img src="./images/logo@128x59.png" alt="爱家"></a>
+            <div class="site-header-right">
+                <div class="register-login">
+                    <a class="btn top-btn btn-theme" href="/home/login.html">登录</a>
+                    <a class="btn top-btn btn-theme" href="/home/register.html">注册</a>
+                </div>
+                <div class="user-info"><span><i class="fa fa-user fa-lg"></i></span> <a class="user-name" href="/home/my.html"></a></div>
             </div>
-            <div class="user-info fr"><span><i class="fa fa-user fa-lg"></i></span> <a class="user-name" href="/home/my.html"></a></div>
         </div>
         <div class="swiper-container">
             <div class="swiper-wrapper">
             </div>
             <div class="swiper-pagination"></div>
+            <div class="swiper-empty" style="display:none;">暂无推荐房源，请直接搜索</div>
         </div>
         <script id="swiper-houses-tmpl" type="text/html">
             {{each houses as house}}
@@ -34,7 +37,10 @@
                 <a href="/home/detail.html?id={{house.house_id}}">
                     <img src="{{house.img_url}}" alt="{{house.title}}">
                 </a>
-                <div class="slide-title">{{house.title}}</div>
+                <div class="slide-title">
+                    <span class="slide-name">{{house.title}}</span>
+                    <span class="slide-price">￥{{house.price}}/晚</span>
+                </div>
             </div>
             {{/each}}
         </script>
@@ -97,6 +103,39 @@
                 </div>
             </div>
         </div>
+        <div class="hot-areas-section">
+            <div class="section-title">热门城区</div>
+            <div class="hot-area-list"></div>
+            <script id="hot-area-tmpl" type="text/html">
+            {{each areas as area}}
+                <a href="javascript:;" class="hot-area-tag" area-id="{{area.aid}}" area-name="{{area.aname}}">{{area.aname}}</a>
+            {{/each}}
+            </script>
+        </div>
+        <div class="latest-houses-section">
+            <div class="section-title">最新房源</div>
+            <ul class="latest-house-list"></ul>
+            <div class="latest-empty" style="display:none;">暂无房源</div>
+            <script id="latest-houses-tmpl" type="text/html">
+            {{each houses as house}}
+            <li class="latest-house-item">
+                <a href="/home/detail.html?id={{house.house_id}}">
+                    <img src="{{house.img_url}}" alt="{{house.title}}">
+                    <div class="latest-house-info">
+                        <div class="latest-house-title">{{house.title}}</div>
+                        <div class="latest-house-meta">{{house.area_name}} · {{house.room_count}}室</div>
+                        <div class="latest-house-price">￥<span>{{house.price}}</span>/晚</div>
+                    </div>
+                </a>
+            </li>
+            {{/each}}
+            </script>
+        </div>
+        <div class="quick-nav" style="display:none;">
+            <a href="/home/my.html">个人中心</a>
+            <a href="/home/orders.html">我的订单</a>
+            <a href="/home/newhouse.html">发布房源</a>
+        </div>
         <div class="footer">
             <p><span><i class="fa fa-copyright"></i></span>爱家租房&nbsp;&nbsp;享受家的温馨</p>
         </div>
@@ -108,6 +147,7 @@
     <script src="./plugins/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
     <script src="./plugins/bootstrap-datepicker/locales/bootstrap-datepicker.zh-CN.min.js"></script>
     <script src="./js/template.js"></script>
+    <script src="./js/ihome/site-header.js"></script>
     <script src="./js/ihome/index.js"></script>
 </body>
 </html>

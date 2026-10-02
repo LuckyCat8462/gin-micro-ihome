@@ -15,15 +15,52 @@ function getCookie(name) {
 }
 
 $(document).ready(function(){
-    $('.modal').on('show.bs.modal', centerModals);      //当模态框出现的时候
+    $('.modal').on('show.bs.modal', centerModals);
     $(window).on('resize', centerModals);
-    // 查询房客订单
     $.get("/api/v1.0/user/orders?role=custom", function(resp){
         if ("0" == resp.errno) {
             $(".orders-list").html(template("orders-list-tmpl", {orders:resp.data.orders}));
             $(".order-comment").on("click", function(){
                 var orderId = $(this).parents("li").attr("order-id");
                 $(".modal-comment").attr("order-id", orderId);
+            });
+            $(".order-pay").on("click", function(){
+                var orderId = $(this).parents("li").attr("order-id");
+                $.ajax({
+                    url:"/api/v1.0/orders/"+orderId+"/payment",
+                    type:"POST",
+                    contentType:"application/json",
+                    dataType:"json",
+                    headers:{"X-CSRFTOKEN":getCookie("csrf_token")},
+                    success:function(resp){
+                        if ("4101" == resp.errno) {
+                            location.href = "/home/login.html";
+                        } else if ("0" == resp.errno) {
+                            location.reload();
+                        } else {
+                            alert(resp.errmsg || "支付失败");
+                        }
+                    }
+                });
+            });
+            $(".order-cancel").on("click", function(){
+                var orderId = $(this).parents("li").attr("order-id");
+                $.ajax({
+                    url:"/api/v1.0/orders/"+orderId+"/cancel",
+                    type:"PUT",
+                    contentType:"application/json",
+                    dataType:"json",
+                    headers:{"X-CSRFTOKEN":getCookie("csrf_token")},
+                    success:function(resp){
+                        if ("4101" == resp.errno) {
+                            location.href = "/home/login.html";
+                        } else if ("0" == resp.errno) {
+                            location.reload();
+                        } else {
+                            alert(resp.errmsg || "取消失败");
+                        }
+                    }
+                });
             });
             $(".modal-comment").on("click", function(){
                 var orderId = $(this).attr("order-id");
@@ -33,7 +70,6 @@ $(document).ready(function(){
                     order_id:orderId,
                     comment:comment
                 };
-                // 处理评论
                 $.ajax({
                     url:"/api/v1.0/orders/"+orderId+"/comment",
                     type:"PUT",
@@ -50,6 +86,8 @@ $(document).ready(function(){
                             $(".orders-list>li[order-id="+ orderId +"]>div.order-content>div.order-text>ul li:eq(4)>span").html("已完成");
                             $("ul.orders-list>li[order-id="+ orderId +"]>div.order-title>div.order-operate").hide();
                             $("#comment-modal").modal("hide");
+                        } else {
+                            alert(resp.errmsg || "评价失败");
                         }
                     }
                 });

@@ -34,17 +34,12 @@ $(document).ready(function () {
         $(this).ajaxSubmit({
             url: "/api/v1.0/user/avatar",
             type: "post",
-            headers: {
-                "X-CSRFToken": getCookie("csrf_token"),
-            },
             dataType: "json",
             success: function (resp) {
                 if (resp.errno == "0") {
-                    // 表示上传成功， 将头像图片的src属性设置为图片的url
                     $("#user-avatar").attr("src", resp.data.avatar_url);
                 } else if (resp.errno == "4101") {
-                    // 表示用户未登录，跳转到登录页面
-                    location.href = "/login.html";
+                    location.href = "/home/login.html";
                 } else {
                     alert(resp.errmsg);
                 }

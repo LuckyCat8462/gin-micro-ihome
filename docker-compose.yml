@@ -1,0 +1,234 @@
+# gin-micro-ihome 本地编排
+# 用法:
+#   docker compose up -d --build          # 启动全部（中间件 + 微服务 + Web）
+#   docker compose up -d mysql redis consul rabbitmq minio minio-init   # 仅启动依赖
+#   docker compose logs -f web
+#   docker compose down
+#
+# 说明:
+# - 业务代码里 MySQL/Consul/RPC 地址多为 127.0.0.1，应用容器使用 host 网络以兼容现有配置
+# - Redis 配置若为局域网 IP（如 192.168.81.128:6379），请确保本机可达；否则改为 127.0.0.1:6379
+# - MinIO: API http://127.0.0.1:9000  控制台 http://127.0.0.1:9001  (minioadmin/minioadmin)
+# - 首页: http://localhost:8080/home/index.html
+
+services:
+  # ---------- 基础设施 ----------
+  mysql:
+    image: mysql:8.0
+    container_name: ihome-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: search_house
+      MYSQL_USER: neko
+      MYSQL_PASSWORD: neko123456
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ihome-mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uneko", "-pneko123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: ihome-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ihome-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  consul:
+    image: hashicorp/consul:1.20
+    container_name: ihome-consul
+    restart: unless-stopped
+    command: agent -dev -client=0.0.0.0 -ui
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ihome-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ihome-rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    container_name: ihome-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ihome-minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: ihome-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      for i in 1 2 3 4 5 6 7 8 9 10 11 12 15; do
+        mc alias set local http://minio:9000 minioadmin minioadmin && break;
+        echo waiting-minio-$$i;
+        sleep 2;
+      done;
+      mc mb -p local/ihome || true;
+      mc anonymous set download local/ihome;
+      echo minio-init-done;
+      "
+
+  # ---------- 微服务（host 网络，兼容 127.0.0.1 绑定与 Consul 注册） ----------
+  getCaptcha:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: getCaptcha
+    container_name: ihome-getCaptcha
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      redis:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+
+  register:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: register
+    container_name: ihome-register
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mysql:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+
+  user:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: user
+    container_name: ihome-user
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mysql:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+
+  house:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: house
+    container_name: ihome-house
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  order:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: order
+    container_name: ihome-order
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mysql:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: web
+    container_name: ihome-web
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      getCaptcha:
+        condition: service_started
+      register:
+        condition: service_started
+      user:
+        condition: service_started
+      house:
+        condition: service_started
+      order:
+        condition: service_started
+
+volumes:
+  ihome-mysql-data:
+  ihome-redis-data:
+  ihome-rabbitmq-data:
+  ihome-minio-data:

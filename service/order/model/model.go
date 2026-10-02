@@ -63,6 +63,27 @@ type HouseImage struct {
 	HouseId uint   `json:"house_id"`            //图片所属房屋编号
 }
 
+// 订单状态
+const (
+	OrderStatusWaitPay    = "WAIT_PAY"
+	OrderStatusPaid       = "PAID"
+	OrderStatusWaitAccept = "WAIT_ACCEPT"
+	OrderStatusWaitComment = "WAIT_COMMENT"
+	OrderStatusCancelled  = "CANCELLED"
+	OrderStatusRejected   = "REJECTED"
+	OrderStatusComplete   = "COMPLETE"
+)
+
+// Outbox 事件与状态
+const (
+	EventConfirm = "CONFIRM"
+	EventCancel  = "CANCEL"
+
+	MsgStatusPending = "PENDING"
+	MsgStatusSent    = "SENT"
+	MsgStatusFailed  = "FAILED"
+)
+
 /* 订单 table_name = order */
 type OrderHouse struct {
 	gorm.Model            //订单编号
@@ -73,9 +94,23 @@ type OrderHouse struct {
 	Days        int       //预定总天数
 	House_price int       //房屋的单价
 	Amount      int       //订单总金额
-	Status      string    `gorm:"default:'WAIT_ACCEPT'"` //订单状态
-	Comment     string    `gorm:"size:512"`              //订单评论
+	Status      string    `gorm:"default:'WAIT_PAY';index"` //订单状态
+	Comment     string    `gorm:"size:512"`                 //订单评论
 	Credit      bool      //表示个人征信情况 true表示良好
+}
+
+/* 本地消息表 Outbox table_name = local_message */
+type LocalMessage struct {
+	ID          uint      `gorm:"primaryKey"`
+	MessageId   string    `gorm:"size:64;uniqueIndex;not null"`
+	OrderId     uint      `gorm:"index;not null"`
+	EventType   string    `gorm:"size:32;not null"` // CONFIRM / CANCEL
+	Payload     string    `gorm:"type:text"`
+	Status      string    `gorm:"size:32;default:'PENDING';index"`
+	RetryCount  int       `gorm:"default:0"`
+	NextRetryAt time.Time `gorm:"type:datetime;index"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // 创建 数据库链接句柄
@@ -107,6 +142,6 @@ func InitDb() (*gorm.DB, error) {
 	// SetMaxOpenConns 设置打开数据库连接的最大数量。
 	sqlDB.SetMaxOpenConns(100)
 
-	db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{})
+	db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{}, &LocalMessage{})
 	return nil, err
 }

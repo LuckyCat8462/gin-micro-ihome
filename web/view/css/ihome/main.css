@@ -10,3 +10,58 @@
     color: #99999c;
     padding: 14px 0px;
 }
+
+/* 全站顶栏（与首页一致：Logo + 登录/用户） */
+.site-header {
+    width: 100%;
+    height: 52px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    background-color: #fff;
+    border-bottom: 1px solid #f0c0c0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.site-logo {
+    display: inline-block;
+    height: 44px;
+    line-height: 44px;
+}
+.site-logo img {
+    height: 44px;
+    width: auto;
+    vertical-align: middle;
+}
+.site-header-right {
+    display: flex;
+    align-items: center;
+    height: 52px;
+}
+.site-header .register-login {
+    display: none;
+    height: 52px;
+    line-height: 52px;
+}
+.site-header .register-login .top-btn {
+    width: 56px;
+    height: 34px;
+    line-height: 22px;
+    margin-left: 8px;
+    font-size: 14px;
+    padding: 4px 0;
+}
+.site-header .user-info {
+    display: none;
+    color: #666;
+    height: 52px;
+    line-height: 52px;
+    font-size: 15px;
+}
+.site-header .user-info a {
+    color: #666;
+}
+.site-header .user-info a:hover {
+    color: #ff6666;
+    text-decoration: none;
+}

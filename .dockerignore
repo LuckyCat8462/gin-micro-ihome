@@ -1,0 +1,11 @@
+.git
+.idea
+.cursorrules
+logs
+*.md
+Learning
+MyShell
+**/test
+**/*_test.go
+*.log
+*.pid

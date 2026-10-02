@@ -55,8 +55,12 @@ func CheckImgCode(uuid, imgCode string) bool {
 		return false
 	}
 
-	// 返回校验结果
-	return code == imgCode
+	if code != imgCode {
+		return false
+	}
+	// 校验成功后删除，避免重复使用
+	_, _ = conn.Do("del", uuid)
+	return true
 }
 
 // 处理登录业务

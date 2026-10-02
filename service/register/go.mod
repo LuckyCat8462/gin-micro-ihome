@@ -7,6 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/go-sql-driver/mysql v1.9.2
 	go-micro.dev/v5 v5.9.0
+	golang.org/x/crypto v0.37.0
 	google.golang.org/protobuf v1.36.6
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.30.1
@@ -64,7 +65,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.21 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.38.0 // indirect

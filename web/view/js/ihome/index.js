@@ -43,64 +43,70 @@ function setEndDate() {
     $("#end-date-modal").modal("hide");
 }
 
-
-
-
 function goToSearchPage(th) {
     var url = "/home/search.html?";
-    url += ("aid=" + $(th).attr("area-id"));
+    url += ("aid=" + encodeURIComponent($(th).attr("area-id") || ""));
     url += "&";
     var areaName = $(th).attr("area-name");
     if (undefined == areaName) areaName="";
-    url += ("aname=" + areaName);
+    url += ("aname=" + encodeURIComponent(areaName));
     url += "&";
-    url += ("sd=" + $(th).attr("start-date"));
+    url += ("sd=" + encodeURIComponent($(th).attr("start-date") || ""));
     url += "&";
-    url += ("ed=" + $(th).attr("end-date"));
+    url += ("ed=" + encodeURIComponent($(th).attr("end-date") || ""));
+    location.href = url;
+}
+
+function jumpSearchByArea(areaId, areaName) {
+    var url = "/home/search.html?";
+    url += ("aid=" + encodeURIComponent(areaId || ""));
+    url += "&";
+    url += ("aname=" + encodeURIComponent(areaName || ""));
+    url += "&sd=&ed=";
     location.href = url;
 }
 
 $(document).ready(function(){
-    // 检查用户的登录状态
-    $.get("/api/v1.0/session", function(resp) {
-        if ("0" == resp.errno) {
-            $(".top-bar>.user-info>.user-name").html(resp.data.name);
-            $(".top-bar>.user-info").show();
-            //yincang
-
-        } else {
-            $(".top-bar>.register-login").show();
+    function resolveHouseImgUrl(imgUrl, index) {
+        if (imgUrl && imgUrl.indexOf("http") === 0) {
+            return imgUrl;
         }
-    }, "json");
-
-    function normalizeBannerImgUrl(imgUrl, index) {
+        if (imgUrl && imgUrl.indexOf("/home/images/") === 0) {
+            return imgUrl;
+        }
+        if (imgUrl && imgUrl.indexOf("./images/") === 0) {
+            return "/home/images/" + imgUrl.replace("./images/", "");
+        }
         var localImages = [
             "/home/images/home01.jpg",
             "/home/images/home02.jpg",
             "/home/images/home03.jpg"
         ];
         if (imgUrl) {
-            if (imgUrl.indexOf("/home/images/") === 0) {
-                return imgUrl;
-            }
-            if (imgUrl.indexOf("./images/") === 0) {
-                return "/home/images/" + imgUrl.replace("./images/", "");
-            }
             var match = imgUrl.match(/home0[1-3]\.jpg/);
             if (match) {
                 return "/home/images/" + match[0];
             }
+            return imgUrl;
         }
         return localImages[index % localImages.length];
     }
 
+    function showSwiperEmpty() {
+        $(".swiper-wrapper").empty();
+        $(".swiper-pagination").hide();
+        $(".swiper-empty").show();
+    }
+
     function initIndexSwiper(houses) {
         if (!houses || houses.length === 0) {
-            console.warn("首页轮播无房屋数据");
+            showSwiperEmpty();
             return;
         }
+        $(".swiper-empty").hide();
+        $(".swiper-pagination").show();
         for (var i = 0; i < houses.length; i++) {
-            houses[i].img_url = normalizeBannerImgUrl(houses[i].img_url, i);
+            houses[i].img_url = resolveHouseImgUrl(houses[i].img_url, i);
         }
         $(".swiper-wrapper").html(
             template("swiper-houses-tmpl", { houses: houses })
@@ -118,30 +124,58 @@ $(document).ready(function(){
         mySwiper.update();
     }
 
-    // 从接口读取数据库房屋信息，图片使用本地 /home/images/home0x.jpg
+    function renderLatestHouses(houses) {
+        if (!houses || houses.length === 0) {
+            $(".latest-house-list").empty();
+            $(".latest-empty").show();
+            return;
+        }
+        $(".latest-empty").hide();
+        for (var i = 0; i < houses.length; i++) {
+            houses[i].img_url = resolveHouseImgUrl(houses[i].img_url, i);
+        }
+        $(".latest-house-list").html(
+            template("latest-houses-tmpl", { houses: houses })
+        );
+    }
+
+    // 从接口读取数据库房屋信息
     $.get("/api/v1.0/house/index", function(resp) {
         if ("0" == resp.errno && resp.data && resp.data.houses && resp.data.houses.length > 0) {
-            initIndexSwiper(resp.data.houses);
+            var houses = resp.data.houses;
+            var swiperHouses = houses.slice(0, 3);
+            initIndexSwiper(swiperHouses);
+            renderLatestHouses(houses);
         } else {
-            console.warn("获取首页轮播失败", resp);
+            showSwiperEmpty();
+            renderLatestHouses([]);
         }
-    }, "json");
+    }, "json").fail(function() {
+        showSwiperEmpty();
+        renderLatestHouses([]);
+    });
 
     // 获取城区信息
     $.get("/api/v1.0/areas", function(resp){
         if ("0" == resp.errno) {
             $(".area-list").html(template("area-list-tmpl", {areas:resp.data}));
+            $(".hot-area-list").html(template("hot-area-tmpl", {areas:resp.data}));
 
             $(".area-list a").click(function(e){
+                e.preventDefault();
                 $("#area-btn").html($(this).html());
                 $(".search-btn").attr("area-id", $(this).attr("area-id"));
                 $(".search-btn").attr("area-name", $(this).html());
                 $("#area-modal").modal("hide");
             });
+
+            $(".hot-area-list").on("click", ".hot-area-tag", function() {
+                jumpSearchByArea($(this).attr("area-id"), $(this).attr("area-name"));
+            });
         }
     });
-    $('.modal').on('show.bs.modal', centerModals);      //当模态框出现的时候
-    $(window).on('resize', centerModals);               //当窗口大小变化的时候
+    $('.modal').on('show.bs.modal', centerModals);
+    $(window).on('resize', centerModals);
     $("#start-date").datepicker({
         language: "zh-CN",
         keyboardNavigation: false,

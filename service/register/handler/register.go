@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"register/model"
 	register "register/proto"
@@ -17,41 +18,42 @@ func New() *Register {
 
 // 注册
 func (e *Register) Register(ctx context.Context, req *register.RegRequest, rsp *register.RegResponse) error {
-	//req数据测试
-	fmt.Println("---微服务注册功能测试-register.go-login函数：")
-	fmt.Println("req数据:", req)
-
-	//数据库操作
 	err := model.RegisterUser(req.Mobile, req.Password)
 	if err != nil {
+		if errors.Is(err, model.ErrUserExists) {
+			rsp.Errno = utils.RECODE_USERONERR
+			rsp.Errmsg = utils.RecodeText(utils.RECODE_USERONERR)
+			return nil
+		}
+		fmt.Println("注册数据库错误：", err)
 		rsp.Errno = utils.RECODE_DBERR
 		rsp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
-	} else {
-		rsp.Errno = utils.RECODE_OK
-		rsp.Errmsg = utils.RecodeText(utils.RECODE_OK)
+		return nil
 	}
+
+	rsp.Errno = utils.RECODE_OK
+	rsp.Errmsg = utils.RecodeText(utils.RECODE_OK)
+	rsp.Name = req.Mobile // 默认用户名为手机号
 	return nil
 }
 
 // 登录
 func (e *Register) Login(ctx context.Context, req *register.RegRequest, rsp *register.RegResponse) error {
-	//req数据测试
-	//fmt.Println("---微服务登录功能测试-register.go-login函数：")
-	//fmt.Println("req数据:", req)
-
-	//数据库操作
 	userName, err := model.Login(req.Mobile, req.Password)
 	if err != nil {
-		fmt.Println("数据库操作返回用户名：", userName, err)
+		if errors.Is(err, model.ErrLoginFailed) {
+			rsp.Errno = utils.RECODE_LOGINERR
+			rsp.Errmsg = utils.RecodeText(utils.RECODE_LOGINERR)
+			return nil
+		}
+		fmt.Println("登录数据库错误：", err)
 		rsp.Errno = utils.RECODE_DBERR
 		rsp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
-	} else {
-		//正常登录
-		//fmt.Println("成功登录，loginUser:", userName)
-		rsp.Errno = utils.RECODE_OK
-		rsp.Errmsg = utils.RecodeText(utils.RECODE_OK)
-		rsp.Name = userName
+		return nil
 	}
-	return nil
 
+	rsp.Errno = utils.RECODE_OK
+	rsp.Errmsg = utils.RecodeText(utils.RECODE_OK)
+	rsp.Name = userName
+	return nil
 }

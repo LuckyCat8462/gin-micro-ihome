@@ -1,8 +1,3 @@
-function getCookie(name) {
-    var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
-    return r ? r[1] : undefined;
-}
-
 $(document).ready(function() {
     $("#mobile").focus(function(){
         $("#mobile-err").hide();
@@ -15,11 +10,11 @@ $(document).ready(function() {
         e.preventDefault();
         var mobile = $("#mobile").val();
         var passwd = $("#password").val();
-        if (!mobile) {
+        if (!mobile || !/^\d{11}$/.test(mobile)) {
             $("#mobile-err span").html("请填写正确的手机号！");
             $("#mobile-err").show();
             return;
-        } 
+        }
         if (!passwd) {
             $("#password-err span").html("请填写密码!");
             $("#password-err").show();
@@ -36,9 +31,6 @@ $(document).ready(function() {
             data: jsonData,
             contentType: "application/json",
             dataType: "json",
-            headers:{
-                "X-CSRFTOKEN":getCookie("csrf_token"),
-            },
             success: function (data) {
                 if ("0" == data.errno) {
                     // 登录成功，跳转到主页
@@ -51,6 +43,10 @@ $(document).ready(function() {
                     $("#password-err").show();
                     return;
                 }
+            },
+            error: function () {
+                $("#password-err span").html("网络或服务异常，请稍后重试");
+                $("#password-err").show();
             }
         });
     });

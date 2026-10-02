@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package house;
 
-option go_package = "./order;house";
+option go_package = "./proto;house";
 
 service House {
 	rpc PubHouse(Request) returns (Response) {};
@@ -11,6 +11,29 @@ service House {
 	rpc GetHouseDetail(DetailReq)returns(DetailResp){};
 	rpc GetIndexHouse(IndexReq)returns(GetResp){};
 	rpc SearchHouse(SearchReq)returns(GetResp){};
+	rpc ReserveInventory(ReserveReq) returns (ReserveResp) {};
+	rpc ReleaseInventory(ReleaseReq) returns (ReleaseResp) {};
+}
+
+message ReserveReq {
+	string house_id = 1;
+	string order_id = 2;
+	string start_date = 3;
+	string end_date = 4;
+}
+
+message ReserveResp {
+	string errno = 1;
+	string errmsg = 2;
+}
+
+message ReleaseReq {
+	string order_id = 1;
+}
+
+message ReleaseResp {
+	string errno = 1;
+	string errmsg = 2;
 }
 
 message SearchReq{
@@ -18,6 +41,7 @@ message SearchReq{
 	string sd = 2;
 	string ed = 3;
 	string sk = 4;
+	string p = 5; // 页码，从 1 开始
 }
 
 message IndexReq{
@@ -82,6 +106,8 @@ message GetResp{
 
 message GetData{
 	repeated Houses houses = 1;
+	string total_page = 2;
+	string current_page = 3;
 }
 
 message Houses {

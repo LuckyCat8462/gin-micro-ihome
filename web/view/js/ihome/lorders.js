@@ -34,9 +34,6 @@ $(document).ready(function(){
                     data:'{"action":"accept"}',
                     contentType:"application/json",
                     dataType:"json",
-                    headers:{
-                        "X-CSRFTOKEN":getCookie("csrf_token"),
-                    },
                     success:function (resp) {
                         if ("4101" == resp.errno) {
                             location.href = "/home/login.html";
@@ -44,6 +41,8 @@ $(document).ready(function(){
                             $(".orders-list>li[order-id="+ orderId +"]>div.order-content>div.order-text>ul li:eq(4)>span").html("已接单");
                             $("ul.orders-list>li[order-id="+ orderId +"]>div.order-title>div.order-operate").hide();
                             $("#accept-modal").modal("hide");
+                        } else {
+                            alert(resp.errmsg || "接单失败");
                         }
                     }
                 })
@@ -66,21 +65,24 @@ $(document).ready(function(){
                     type:"PUT",
                     data:JSON.stringify(data),
                     contentType:"application/json",
-                    headers: {
-                        "X-CSRFTOKEN":getCookie("csrf_token")
-                    },
                     dataType:"json",
                     success:function (resp) {
                         if ("4101" == resp.errno) {
-                            location.href = "/login/login.html";
+                            location.href = "/home/login.html";
                         } else if ("0" == resp.errno) {
                             $(".orders-list>li[order-id="+ orderId +"]>div.order-content>div.order-text>ul li:eq(4)>span").html("已拒单");
                             $("ul.orders-list>li[order-id="+ orderId +"]>div.order-title>div.order-operate").hide();
                             $("#reject-modal").modal("hide");
+                        } else {
+                            alert(resp.errmsg || "拒单失败");
                         }
                     }
                 });
             })
+        } else if ("4101" == resp.errno) {
+            location.href = "/home/login.html";
+        } else {
+            alert(resp.errmsg || "加载订单失败");
         }
     });
 });

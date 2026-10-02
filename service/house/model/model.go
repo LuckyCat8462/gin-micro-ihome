@@ -40,6 +40,7 @@ type House struct {
 	Max_days        int    `gorm:"default:0" json:"max_days"`                  //最多入住的天数 0表示不限制
 	Order_count     int    `gorm:"default:0" json:"order_count"`               //预定完成的该房屋的订单数
 	Index_image_url string `gorm:"size:256;default:''" json:"index_image_url"` //房屋主图片路径
+	Facilities      []Facility `gorm:"many2many:house_facility;"`              //房屋设施
 }
 
 /* 区域信息 table_name = area */ //区域信息是需要我们手动添加到数据库中的
@@ -78,6 +79,26 @@ type OrderHouse struct {
 	Credit      bool      //表示个人征信情况 true表示良好
 }
 
+// 日历库存预留状态
+const (
+	ReserveStatusReserved  = "RESERVED"
+	ReserveStatusConfirmed = "CONFIRMED"
+	ReserveStatusReleased  = "RELEASED"
+)
+
+/* 房源日历预留 table_name = house_reservation */
+type HouseReservation struct {
+	ID        uint      `gorm:"primaryKey"`
+	HouseId   uint      `gorm:"index;not null"`
+	OrderId   uint      `gorm:"uniqueIndex;not null"` // 幂等键
+	BeginDate time.Time `gorm:"type:datetime;not null"`
+	EndDate   time.Time `gorm:"type:datetime;not null"`
+	Status    string    `gorm:"size:32;default:'RESERVED';index"`
+	ExpiredAt time.Time `gorm:"type:datetime"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 // 创建 数据库链接句柄
 var GlobalConn *gorm.DB
 
@@ -107,6 +128,6 @@ func InitDb() (*gorm.DB, error) {
 	// SetMaxOpenConns 设置打开数据库连接的最大数量。
 	sqlDB.SetMaxOpenConns(100)
 
-	db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{})
+	db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{}, &HouseReservation{})
 	return nil, err
 }

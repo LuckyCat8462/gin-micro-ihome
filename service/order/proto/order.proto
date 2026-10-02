@@ -2,18 +2,53 @@ syntax = "proto3";
 
 package order;
 
-option go_package = "./order;order";
+option go_package = "./proto;order";
 
 service Order {
 	rpc CreateOrder(Request) returns (Response) {};
 	rpc GetOrderInfo(GetReq)returns(GetResp){};
 	rpc UpdateStatus(UpdateReq)returns(UpdateResp){};
+	rpc PayOrder(PayReq) returns (PayResp) {};
+	rpc CancelOrder(CancelReq) returns (CancelResp) {};
+	rpc CommentOrder(CommentReq) returns (CommentResp) {};
+}
+
+message PayReq {
+	string order_id = 1;
+	string userName = 2;
+}
+
+message PayResp {
+	string errno = 1;
+	string errmsg = 2;
+}
+
+message CancelReq {
+	string order_id = 1;
+	string userName = 2;
+}
+
+message CancelResp {
+	string errno = 1;
+	string errmsg = 2;
+}
+
+message CommentReq {
+	string order_id = 1;
+	string userName = 2;
+	string comment = 3;
+}
+
+message CommentResp {
+	string errno = 1;
+	string errmsg = 2;
 }
 
 message UpdateReq{
 	string action = 1;
 	string reason = 2;
 	string id = 3;
+	string userName = 4;
 }
 
 message UpdateResp{
@@ -49,6 +84,7 @@ message OrdersData{
 	string start_date = 8;
 	string status = 9;
 	string title = 10;
+	bool credit = 11;
 }
 
 
@@ -69,4 +105,3 @@ message Response {
 message OrderData{
 	string order_id = 1;
 }
-

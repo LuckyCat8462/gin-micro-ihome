@@ -2,11 +2,16 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"house/storage"
 	house "house/proto"
 	houseservice "house/service"
 	"house/utils"
 	"strconv"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
 type House struct{}
@@ -38,34 +43,41 @@ func (e *House) PubHouse(ctx context.Context, req *house.Request, rsp *house.Res
 }
 
 func (e *House) UploadHouseImg(ctx context.Context, req *house.ImgReq, resp *house.ImgResp) error {
-	fmt.Println("fdfs房屋图片待开发")
+	if req.HouseId == "" || len(req.ImgData) == 0 {
+		resp.Errno = utils.RECODE_PARAMERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_PARAMERR)
+		return nil
+	}
 
-	////把图片存储到fastdfs中
-	////初始化fdfs的客户端
-	//fClient, _ := fdfs_client.NewFdfsClient("/etc/fdfs/client.conf")
-	////上传图片到fdfs
-	//fdfsResp, err := fClient.UploadByBuffer(req.ImgData, req.FileExt[1:])
-	//if err != nil {
-	//	resp.Errno = utils.RECODE_DATAERR
-	//	resp.Errmsg = utils.RecodeText(utils.RECODE_DATAERR)
-	//	return nil
-	//}
-	//
-	//err = houseservice.UploadHouseImage(req.HouseId, fdfsResp.RemoteFileId)
-	//if err != nil {
-	//	resp.Errno = utils.RECODE_DBERR
-	//	resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
-	//	return nil
-	//}
-	//
-	//resp.Errno = utils.RECODE_OK
-	//resp.Errmsg = utils.RecodeText(utils.RECODE_OK)
-	//
-	//var img house.ImgData
-	//img.Url = "http://192.168.137.81:8888/" + fdfsResp.RemoteFileId
-	//
-	//resp.Data = &img
+	ext := strings.TrimPrefix(strings.ToLower(req.FileExt), ".")
+	if ext == "" {
+		ext = "jpg"
+	}
+	if ext != "jpg" && ext != "jpeg" && ext != "png" {
+		resp.Errno = utils.RECODE_PARAMERR
+		resp.Errmsg = "仅支持 jpg/png 图片"
+		return nil
+	}
 
+	objectKey := fmt.Sprintf("houses/%s/%s.%s", req.HouseId, uuid.NewString(), ext)
+	url, err := storage.Upload(ctx, objectKey, req.ImgData, storage.ContentTypeByExt(ext))
+	if err != nil {
+		fmt.Println("上传 MinIO 失败", err)
+		resp.Errno = utils.RECODE_IOERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_IOERR)
+		return nil
+	}
+
+	if err := houseservice.UploadHouseImage(req.HouseId, url); err != nil {
+		fmt.Println("保存房源图片失败", err)
+		resp.Errno = utils.RECODE_DBERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
+		return nil
+	}
+
+	resp.Errno = utils.RECODE_OK
+	resp.Errmsg = utils.RecodeText(utils.RECODE_OK)
+	resp.Data = &house.ImgData{Url: url}
 	return nil
 }
 
@@ -121,10 +133,13 @@ func (e *House) GetIndexHouse(ctx context.Context, req *house.IndexReq, resp *ho
 }
 
 func (e *House) SearchHouse(ctx context.Context, req *house.SearchReq, resp *house.GetResp) error {
-	fmt.Println("req", req)
-	houseResp, err := houseservice.GetHouseList(req.Aid, req.Sd, req.Ed, req.Sk)
-	fmt.Println("houseResp:", houseResp)
+	houseResp, totalPage, currentPage, err := houseservice.GetHouseList(req.Aid, req.Sd, req.Ed, req.Sk, req.P)
 	if err != nil {
+		if errors.Is(err, houseservice.ErrSearchParam) {
+			resp.Errno = utils.RECODE_PARAMERR
+			resp.Errmsg = "搜索日期参数错误"
+			return nil
+		}
 		resp.Errno = utils.RECODE_DATAERR
 		resp.Errmsg = utils.RecodeText(utils.RECODE_DATAERR)
 		return nil
@@ -132,7 +147,44 @@ func (e *House) SearchHouse(ctx context.Context, req *house.SearchReq, resp *hou
 
 	resp.Errno = utils.RECODE_OK
 	resp.Errmsg = utils.RecodeText(utils.RECODE_OK)
+	resp.Data = &house.GetData{
+		Houses:      houseResp,
+		TotalPage:   strconv.Itoa(totalPage),
+		CurrentPage: strconv.Itoa(currentPage),
+	}
+	return nil
+}
 
-	resp.Data = &house.GetData{Houses: houseResp}
+func (e *House) ReserveInventory(ctx context.Context, req *house.ReserveReq, resp *house.ReserveResp) error {
+	err := houseservice.ReserveInventory(req.HouseId, req.OrderId, req.StartDate, req.EndDate)
+	if errors.Is(err, houseservice.ErrConflict) {
+		resp.Errno = utils.RECODE_DATAERR
+		resp.Errmsg = "房间已被抢定"
+		return nil
+	}
+	if errors.Is(err, houseservice.ErrParam) {
+		resp.Errno = utils.RECODE_PARAMERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_PARAMERR)
+		return nil
+	}
+	if err != nil {
+		resp.Errno = utils.RECODE_DBERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
+		return nil
+	}
+	resp.Errno = utils.RECODE_OK
+	resp.Errmsg = utils.RecodeText(utils.RECODE_OK)
+	return nil
+}
+
+func (e *House) ReleaseInventory(ctx context.Context, req *house.ReleaseReq, resp *house.ReleaseResp) error {
+	orderID, _ := strconv.Atoi(req.OrderId)
+	if err := houseservice.ReleaseReservation(uint(orderID)); err != nil {
+		resp.Errno = utils.RECODE_DBERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_DBERR)
+		return nil
+	}
+	resp.Errno = utils.RECODE_OK
+	resp.Errmsg = utils.RecodeText(utils.RECODE_OK)
 	return nil
 }

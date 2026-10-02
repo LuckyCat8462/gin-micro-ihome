@@ -32,7 +32,7 @@ body {
 }
 .house-info {
     background-color: #fff;
-    margin-top: 38px;
+    margin-top: 90px;
     padding: 10px;
 }
 .house-info>img {
@@ -87,6 +87,12 @@ body {
     background-color: #ff6666;
     color: #fff;
     text-align: center;
+    cursor: pointer;
+}
+.submit-btn.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 .popup_con{display:none;}
 .popup{width:300px;height:150px;position:fixed;
@@ -97,6 +103,6 @@ body {
     z-index:1000;
 }
 
-.popup p{height:150px;line-height:150px;text-align:center;font-size:18px;}
+.popup p{min-height:150px;padding:20px 16px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:16px;line-height:1.4;}
 
 .mask{width:100%;height:100%;position:fixed;left:0;top:0;background-color:#000;opacity:0.3;z-index:999;}

@@ -15,74 +15,110 @@
 
 </head>
 <body>
-    <div class="container">
+    <div class="container detail-page">
         <div class="top-bar">
+            <div class="site-header">
+                <a class="site-logo" href="/home/index.html"><img src="./images/logo@128x59.png" alt="爱家"></a>
+                <div class="site-header-right">
+                    <div class="register-login">
+                        <a class="btn top-btn btn-theme" href="/home/login.html">登录</a>
+                        <a class="btn top-btn btn-theme" href="/home/register.html">注册</a>
+                    </div>
+                    <div class="user-info"><span><i class="fa fa-user fa-lg"></i></span> <a class="user-name" href="/home/my.html"></a></div>
+                </div>
+            </div>
             <div class="nav-bar">
                 <h3 class="page-title">房间信息</h3>
                 <a class="nav-btn fl" href="#" onclick="hrefBack();"><span><i class="fa fa-angle-left fa-2x"></i></span></a>
             </div>
         </div>
+        <div class="detail-error" style="display:none;">加载失败，请稍后重试</div>
         <div class="swiper-container">
         </div>
         <script id="house-image-tmpl" type="text/html">
             <ul class="swiper-wrapper">
-                <li><img src="./images/home01.jpg"></li>
                 {{each img_urls as img_url}}
-                <li class="swiper-slide"><img src="{{img_url}}"></li>
+                <li class="swiper-slide"><img src="{{img_url}}" alt=""></li>
                 {{/each}}
             </ul>
             <div class="swiper-pagination"></div>
-            <div class="house-price">￥<span>{{(price).toFixed(0)}}</span>/晚</div>
         </script>
         <div class="detail-con">
         </div>
         <script id="house-detail-tmpl" type="text/html">
             <div class="detail-header layout-style">
-                <h2 class="house-title">{{house.title}}</h2>
-                <div class="landlord-pic"><img src="{{house.user_avatar}}"></div>
-                <h2 class="landlord-name">房东： <span>{{house.user_name}}</span></h2>
+                <div class="landlord-pic"><img src="{{house.user_avatar}}" alt=""></div>
+                <div class="header-main">
+                    <h2 class="house-title">{{house.title}}</h2>
+                    <p class="landlord-name">房东：{{house.user_name}}</p>
+                </div>
             </div>
             <div class="house-info layout-style">
                <h3>房屋地址</h3>
-               <ul class="house-info-list text-center">
-                    <li>{{house.address}}</li>
-               </ul>
+               <p class="house-address">{{house.address}}</p>
             </div>
             <ul class="house-type layout-style">
                 <li>
-                    <span class="icon-house"></span>
+                    <span class="type-icon"><i class="fa fa-home"></i></span>
                     <div class="icon-text">
-                        <h3>出租{{house.room_count}}间</h3>
-                        <p>房屋面积:{{house.acreage}}平米</p>
-                        <p>房屋户型:{{house.unit}}</p>
+                        <h3>{{house.room_count}}间 · {{house.unit}}</h3>
+                        <p>{{house.acreage}}㎡</p>
                     </div>
                 </li>
                 <li>
-                    <span class="icon-user"></span>
+                    <span class="type-icon"><i class="fa fa-users"></i></span>
                     <div class="icon-text">
                         <h3>宜住{{house.capacity}}人</h3>
+                        <p>接待人数</p>
                     </div>
                 </li>
                 <li>
-                    <span class="icon-bed"></span>
+                    <span class="type-icon"><i class="fa fa-bed"></i></span>
                     <div class="icon-text">
-                        <h3>卧床配置</h3>
+                        <h3>床铺</h3>
                         <p>{{house.beds}}</p>
                     </div>
                 </li>
             </ul>
             <div class="house-info layout-style">
-                <h3>房间详情</h3>
+                <h3>入住规则</h3>
                 <ul class="house-info-list">
-                    <li>收取押金<span>{{(house.deposit).toFixed(0)}}</span></li>
-                    <li>最少入住天数<span>{{house.min_days}}</span></li>
-                    <li>最多入住天数<span>{{if house.max_days==0}}无限制{{else}}{{house.max_days}}{{/if}}</span></li>
+                    <li>押金<span>￥{{(house.deposit).toFixed(0)}}</span></li>
+                    <li>最少入住<span>{{house.min_days}}天</span></li>
+                    <li>最多入住<span>{{if house.max_days==0}}无限制{{else}}{{house.max_days}}天{{/if}}</span></li>
                 </ul>
             </div>
-
-
+            {{if house.facilities && house.facilities.length}}
+            <div class="house-facility layout-style">
+                <h3>配套设施</h3>
+                <div class="facility-tags">
+                    {{each facilities as fac}}
+                    <span class="facility-tag"><i class="fa fa-check"></i>{{fac.name}}</span>
+                    {{/each}}
+                </div>
+            </div>
+            {{/if}}
+            {{if house.comments && house.comments.length}}
+            <div class="house-info layout-style">
+                <h3>住客评价</h3>
+                <ul class="house-comment-list">
+                    {{each house.comments as c}}
+                    <li class="house-comment-item">
+                        <div class="comment-meta">
+                            <span class="comment-user">{{c.user_name}}</span>
+                            <span class="comment-ctime">{{c.ctime}}</span>
+                        </div>
+                        <div class="comment-text">{{c.comment}}</div>
+                    </li>
+                    {{/each}}
+                </ul>
+            </div>
+            {{/if}}
         </script>
-        <a class="book-house" href="">即刻预定</a>
+        <div class="book-bar" style="display:none;">
+            <div class="book-price">￥<span class="book-price-num">0</span><em>/晚</em></div>
+            <a class="book-house book-house-primary" href="">即刻预定</a>
+        </div>
         <div class="footer">
             <p><span><i class="fa fa-copyright"></i></span>爱家租房&nbsp;&nbsp;享受家的温馨</p>
         </div>
@@ -94,6 +130,7 @@
     <script src="./plugins/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
     <script src="./plugins/bootstrap-datepicker/locales/bootstrap-datepicker.zh-CN.min.js"></script>
     <script src="./js/template.js"></script>
+    <script src="./js/ihome/site-header.js"></script>
     <script src="./js/ihome/detail.js"></script>
 </body>
 </html>

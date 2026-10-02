@@ -42,6 +42,20 @@ func PublishHouse(req *house.Request) (int, error) {
 		return 0, err
 	}
 
+	var facilityIDs []int
+	for _, fid := range req.Facility {
+		id, err := strconv.Atoi(fid)
+		if err != nil || id <= 0 {
+			continue
+		}
+		facilityIDs = append(facilityIDs, id)
+	}
+	if len(facilityIDs) > 0 {
+		if err := model.ReplaceHouseFacilities(h.ID, facilityIDs); err != nil {
+			return 0, err
+		}
+	}
+
 	InvalidateAllHouseCache("")
 	return int(h.ID), nil
 }
