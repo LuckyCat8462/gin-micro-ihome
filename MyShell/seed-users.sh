@@ -5,25 +5,42 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck disable=SC1091
+source "$ROOT/MyShell/env.sh"
+
 BASE="${BASE_URL:-http://127.0.0.1:8080/api/v1.0}"
 PASS="${SEED_PASSWORD:-123456}"
 REDIS_HOST="${REDIS_HOST:-}"
-REDIS_PORT="${REDIS_PORT:-6379}"
-
-log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 resolve_redis() {
   if [[ -n "$REDIS_HOST" ]]; then
-    echo "$REDIS_HOST"
-    return 0
+    if redis_cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+      echo "$REDIS_HOST"
+      return 0
+    fi
+    # 即使 host 不通也试试 localhost（容器内 redis-cli 走本地）
+    if docker exec ihome-redis redis-cli ping 2>/dev/null | grep -q PONG; then
+      echo "127.0.0.1"
+      export REDIS_CLI_HOST=127.0.0.1
+      return 0
+    fi
+    log "错误: REDIS_HOST=$REDIS_HOST 不可用"
+    exit 1
   fi
   local h
-  for h in 192.168.81.128 127.0.0.1; do
-    if redis-cli -h "$h" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+  for h in $REDIS_CANDIDATES; do
+    if redis_cli -h "$h" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
       echo "$h"
       return 0
     fi
   done
+  # 最后 fallback：docker exec 容器内 redis-cli（它走容器自己的 localhost）
+  if docker exec "$DOCKER_CONTAINER_REDIS" redis-cli ping 2>/dev/null | grep -q PONG; then
+    echo "127.0.0.1"
+    export REDIS_CLI_HOST=127.0.0.1
+    return 0
+  fi
   log "错误: Redis 不可用（写图片验证码需要）"
   exit 1
 }
@@ -53,7 +70,8 @@ for item in "${USERS[@]}"; do
   rm -f "$cookie"
 
   log "处理 $mobile ($real)"
-  redis-cli -h "$RH" -p "$REDIS_PORT" SETEX "$uuid" 300 "$code" >/dev/null
+  redis_cli -h "$RH" -p "$REDIS_PORT" SETEX "$uuid" 300 "$code" >/dev/null 2>&1 || \
+    docker exec "$DOCKER_CONTAINER_REDIS" redis-cli SETEX "$uuid" 300 "$code" >/dev/null 2>&1
 
   reg="$(curl -s -c "$cookie" -b "$cookie" -H "Content-Type: application/json" \
     -d "{\"mobile\":\"$mobile\",\"password\":\"$PASS\",\"imagecode\":\"$code\",\"uuid\":\"$uuid\"}" \

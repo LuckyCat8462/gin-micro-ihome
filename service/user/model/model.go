@@ -83,7 +83,7 @@ var GlobalConn *gorm.DB
 
 func InitDb() (*gorm.DB, error) {
 	//字符串拼接
-	dsn := conf.MysqlName + ":" + conf.MysqlPwd + "@tcp(" + conf.MysqlAddr + ":" + conf.MysqlPort + ")/" + conf.MysqlDB + "?parseTime=true"
+	dsn := conf.MysqlName + ":" + conf.MysqlPwd + "@tcp(" + conf.MysqlAddr + ":" + conf.MysqlPort + ")/" + conf.MysqlDB + "?charset=utf8mb4&parseTime=True&loc=Local"
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{ //	gorm参数
 		//不要复数表名

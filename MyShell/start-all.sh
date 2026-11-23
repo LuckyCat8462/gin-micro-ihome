@@ -1,9 +1,10 @@
 #!/bin/bash
 # 一键启动：依赖检查 + 编译二进制 + Consul/微服务/Web
 # 用法: ./MyShell/start-all.sh
-# 环境变量（可选）:
-#   REDIS_HOST / REDIS_PORT   默认尝试 192.168.81.128 与 127.0.0.1
+# 环境变量（可选，默认值集中在 MyShell/env.sh，本机差异写 MyShell/local.env）:
+#   REDIS_CANDIDATES / REDIS_HOST / REDIS_PORT
 #   MYSQL_HOST / MYSQL_USER / MYSQL_PWD / MYSQL_DB
+#   GO_BIN                    go 不在 PATH 时指定可执行文件路径
 #   SKIP_BUILD=1              跳过 go build（使用已有 logs/bin）
 #   REQUIRE_MINIO=1           MinIO 不可用时退出（默认仅警告）
 #   ALLOW_NO_MQ=1             RabbitMQ 不可用时仅警告不退出
@@ -16,30 +17,61 @@ LOG_DIR="$PROJECT_ROOT/logs"
 PID_DIR="$LOG_DIR/pids"
 BIN_DIR="$LOG_DIR/bin"
 
-MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
-MYSQL_PORT="${MYSQL_PORT:-3306}"
-MYSQL_USER="${MYSQL_USER:-neko}"
-MYSQL_PWD="${MYSQL_PWD:-neko123456}"
-MYSQL_DB="${MYSQL_DB:-search_house}"
-REDIS_PORT="${REDIS_PORT:-6379}"
-CONSUL_HTTP="${CONSUL_HTTP:-http://127.0.0.1:8500}"
-MINIO_API="${MINIO_API:-http://127.0.0.1:9000}"
-AMQP_HOST="${AMQP_HOST:-127.0.0.1}"
-AMQP_PORT="${AMQP_PORT:-5672}"
+# 机器差异配置唯一入口（含本机覆盖 local.env）
+# shellcheck disable=SC1091
+source "$PROJECT_ROOT/MyShell/env.sh"
 
 mkdir -p "$LOG_DIR" "$PID_DIR" "$BIN_DIR"
 
-# 确保能找到 go / docker / consul
-export PATH="/home/neko/Learning/WorkTools/go/bin:/usr/local/go/bin:$HOME/go/bin:$PATH"
-
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
-ensure_go() {
+preflight() {
+  local hard_fail=0
+  command -v curl >/dev/null 2>&1 || { log "缺少 curl: sudo apt install curl"; hard_fail=1; }
+  command -v python3 >/dev/null 2>&1 || log "提示: 缺 python3（seed-demo.sh 需要）: sudo apt install python3"
+  if command -v docker >/dev/null 2>&1; then
+    if docker compose version >/dev/null 2>&1; then
+      log "docker compose OK"
+    else
+      log "提示: docker compose v2 插件缺失: sudo apt install docker-compose-plugin"
+    fi
+  else
+    log "提示: 未安装 docker。依赖可由 docker compose 兜底，建议安装: curl -fsSL https://get.docker.com | sudo sh"
+  fi
+  if [[ "$hard_fail" -eq 1 ]]; then
+    log "错误: 体检未通过，请安装缺失项后重试"
+    exit 1
+  fi
+}
+
+detect_go() {
+  if [[ -n "$GO_BIN" ]]; then
+    [[ -x "$GO_BIN" ]] && { echo "$GO_BIN"; return 0; }
+    log "错误: GO_BIN=$GO_BIN 不可执行"
+    return 1
+  fi
   if command -v go >/dev/null 2>&1; then
+    command -v go
     return 0
   fi
-  log "错误: 未找到 go，请安装 Go 1.24+ 并加入 PATH"
-  exit 1
+  local p
+  for p in /usr/local/go/bin "$HOME/go/bin" "$HOME/.local/go/bin" /usr/lib/go/bin /opt/homebrew/bin /snap/bin; do
+    if [[ -x "$p/go" ]]; then
+      echo "$p/go"
+      return 0
+    fi
+  done
+  return 1
+}
+
+ensure_go() {
+  local go_bin
+  if ! go_bin="$(detect_go)"; then
+    log "错误: 未找到 go。安装 Go 1.24+ 后重试，或指定: GO_BIN=/path/to/go ./MyShell/start-all.sh"
+    exit 1
+  fi
+  export PATH="$(dirname "$go_bin"):$PATH"
+  log "Go: $go_bin ($(go version 2>/dev/null | awk '{print $3}'))"
 }
 
 is_running() {
@@ -76,8 +108,26 @@ http_ok() {
 }
 
 resolve_redis_host() {
+  local cli_ok=0
+  if command -v redis-cli >/dev/null 2>&1; then
+    cli_ok=1
+  fi
+
+  try_host() {
+    local h="$1"
+    if [[ $cli_ok -eq 1 ]]; then
+      if redis-cli -h "$h" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+        return 0
+      fi
+    fi
+    if port_open "$h" "$REDIS_PORT"; then
+      return 0
+    fi
+    return 1
+  }
+
   if [[ -n "${REDIS_HOST:-}" ]]; then
-    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+    if try_host "$REDIS_HOST"; then
       echo "$REDIS_HOST"
       return 0
     fi
@@ -85,8 +135,8 @@ resolve_redis_host() {
     return 1
   fi
   local h
-  for h in 192.168.81.128 127.0.0.1; do
-    if redis-cli -h "$h" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+  for h in $REDIS_CANDIDATES; do
+    if try_host "$h"; then
       echo "$h"
       return 0
     fi
@@ -159,9 +209,10 @@ check_redis() {
     fi
   fi
   REDIS_HOST_RESOLVED="$host"
+  export REDIS_ADDR="$host:$REDIS_PORT"
   log "Redis OK ($REDIS_HOST_RESOLVED:$REDIS_PORT)"
-  if [[ "$REDIS_HOST_RESOLVED" == "127.0.0.1" ]]; then
-    log "提示: 代码配置若仍为 192.168.81.128，请改 conf 或执行 MyShell/fix-redis-bind.sh"
+  if [[ "$REDIS_HOST_RESOLVED" != "127.0.0.1" ]]; then
+    log "提示: Redis 在 $REDIS_HOST_RESOLVED:$REDIS_PORT（已导出 REDIS_ADDR，Go conf 参数化后可直接继承）"
   fi
 }
 
@@ -408,8 +459,18 @@ verify_stack() {
   fi
 }
 
+ensure_areas() {
+  local n
+  n="$(mysql_q "SELECT COUNT(*) FROM area" || echo 0)"
+  if [[ "${n:-0}" -eq 0 ]]; then
+    log "警告: area 表为空（城区下拉/发房/seed-demo 都会失败）"
+    log "      请执行: ./MyShell/seed-area.sh   （或导入旧机器 dump: ./MyShell/seed-area.sh dump.sql）"
+  fi
+}
+
 cd "$PROJECT_ROOT"
 log "项目目录: $PROJECT_ROOT"
+preflight
 log "---------- 检查依赖 ----------"
 check_mysql
 check_redis
@@ -429,6 +490,7 @@ start_bin "web" 8080
 # 给 Consul 注册一点时间
 sleep 2
 verify_stack
+ensure_areas
 log "---------- 全部完成 ----------"
 log "首页: http://localhost:8080/home/index.html"
 log "Consul: $CONSUL_HTTP"

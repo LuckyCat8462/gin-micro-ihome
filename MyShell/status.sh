@@ -7,9 +7,8 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PID_DIR="$PROJECT_ROOT/logs/pids"
 BIN_DIR="$PROJECT_ROOT/logs/bin"
-CONSUL_HTTP="${CONSUL_HTTP:-http://127.0.0.1:8500}"
-
-log() { echo "[$(date '+%H:%M:%S')] $*"; }
+# shellcheck disable=SC1091
+source "$PROJECT_ROOT/MyShell/env.sh"
 
 port_open() {
   local host="$1" port="$2"
@@ -43,12 +42,19 @@ for item in "mysql:3306" "redis:6379" "consul:8500" "rabbitmq:5672" "minio:9000"
   if port_open 127.0.0.1 "$port"; then
     printf "%-12s 127.0.0.1:%s open\n" "$name" "$port"
   else
-    # redis 可能只绑局域网
-    if [[ "$name" == "redis" ]] && port_open 192.168.81.128 6379; then
-      printf "%-12s 192.168.81.128:6379 open\n" "$name"
-    else
-      printf "%-12s :%s closed\n" "$name" "$port"
+    # redis 可能只绑局域网或非默认候选地址
+    if [[ "$name" == "redis" ]]; then
+      local h found=""
+      for h in $REDIS_CANDIDATES; do
+        if [[ "$h" != "127.0.0.1" ]] && port_open "$h" "$REDIS_PORT"; then
+          printf "%-12s %s:%s open\n" "$name" "$h" "$REDIS_PORT"
+          found=1
+          break
+        fi
+      done
+      if [[ -n "$found" ]]; then continue; fi
     fi
+    printf "%-12s :%s closed\n" "$name" "$port"
   fi
 done
 

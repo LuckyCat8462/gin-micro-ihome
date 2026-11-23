@@ -92,5 +92,10 @@ $(document).ready(function(){
         })
     })
 
+    // 上传完毕按钮 → 跳转到我的房源
+    $("#btn-done-upload").click(function () {
+        location.href = "/home/myhouse.html";
+    })
+
 
 })

@@ -12,6 +12,10 @@ WORKDIR /src
 # 部分依赖需要 git / gcc
 RUN apk add --no-cache git gcc musl-dev
 
+# Go 模块代理（proxy.golang.org 在国内网络不可达，默认 goproxy.cn；可用 --build-arg 覆盖）
+ARG GOPROXY=https://goproxy.cn,direct
+ENV GOPROXY=${GOPROXY}
+
 # 可选目标: web | getCaptcha | register | user | house | order
 ARG TARGET=web
 

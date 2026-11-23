@@ -3,3 +3,5 @@
 docs/
 logs/
 .runtime/
+MyShell/local.env
+.trae-html-share-packages/

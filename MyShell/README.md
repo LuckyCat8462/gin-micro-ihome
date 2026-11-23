@@ -4,7 +4,7 @@
 
 1. **Go 1.24+** 已安装并在 `PATH` 中
 2. **MySQL**（库 `search_house`，账号见 `web/conf/config.go`）
-3. **Redis**（默认探测 `192.168.81.128:6379` / `127.0.0.1:6379`）
+3. **Redis**（候选主机在 `MyShell/env.sh` 的 `REDIS_CANDIDATES`，默认 `127.0.0.1`）
 4. **Consul**（未安装时脚本会尝试 `docker compose` 或本机 `consul agent -dev`）
 5. **RabbitMQ**（支付确认 / 库存释放；可用 docker compose）
 6. **MinIO**（头像与房源图；可用 docker compose）
@@ -35,6 +35,14 @@ chmod +x MyShell/*.sh
 | `SKIP_BUILD=1` | 跳过编译，复用 `logs/bin` |
 | `REQUIRE_MINIO=1` | MinIO 不可用时退出（默认仅警告） |
 | `ALLOW_NO_MQ=1` | RabbitMQ 不可用时仅警告（不推荐） |
+| `GO_BIN` | go 不在 PATH 时指定可执行文件路径 |
+
+### 机器差异配置（env.sh / local.env）
+
+- `MyShell/env.sh`：所有脚本的默认值与通用函数（Redis 候选、MySQL 凭据、容器名等）
+- `MyShell/local.env`：本机覆盖（复制 `local.env.example` 改名使用，已被 gitignore 不入库）
+- `MyShell/seed-area.sh`：初始化 `area` 城区表（新机器空库必跑一次；表结构由服务 AutoMigrate 自动创建，本脚本只灌数据）
+- `fix-redis-bind.sh`：**已废弃**（旧虚拟机专用）。docker compose 起的 Redis 天然监听所有接口
 
 ## 一键停止 / 状态 / 演示数据
 
@@ -85,5 +93,5 @@ tail -f logs/house.log
 
 ## 其他脚本
 
-- `fix-redis-bind.sh`：让 Redis 同时监听 127.0.0.1 与局域网 IP
+- `fix-redis-bind.sh`：已废弃（旧虚拟机专用，仅打印提示）
 - `ScriptHouses.sh`：已弃用，转发到 `start-all.sh`

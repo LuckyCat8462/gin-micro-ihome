@@ -13,6 +13,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck disable=SC1091
+source "$ROOT/MyShell/env.sh"
 BASE="${BASE_URL:-http://127.0.0.1:8080/api/v1.0}"
 PASS="${SEED_PASSWORD:-123456}"
 CLEAN_UT="${CLEAN_UT:-1}"
@@ -20,12 +22,6 @@ SKIP_ORDERS="${SKIP_ORDERS:-0}"
 ASSET_DIR="$ROOT/MyShell/seed-assets/houses"
 AVATAR_DIR="$ROOT/MyShell/seed-assets/avatars"
 LOCAL_IMG_DIR="$ROOT/web/view/images"
-
-MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
-MYSQL_PORT="${MYSQL_PORT:-3306}"
-MYSQL_USER="${MYSQL_USER:-neko}"
-MYSQL_PWD="${MYSQL_PWD:-neko123456}"
-MYSQL_DB="${MYSQL_DB:-search_house}"
 
 LANDLORD_A="13900000001"
 LANDLORD_B="13900000002"
@@ -36,7 +32,12 @@ TENANT_C="13900000005"
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 mysql_q() {
-  mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PWD" "$MYSQL_DB" -N -e "$1" 2>/dev/null
+  local sql="$1"
+  if command -v mysql >/dev/null 2>&1; then
+    mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PWD" "$MYSQL_DB" -N -e "$sql" 2>/dev/null
+  else
+    docker exec "$DOCKER_CONTAINER_MYSQL" mysql -u"$MYSQL_USER" -p"$MYSQL_PWD" "$MYSQL_DB" -N -e "$sql" 2>/dev/null
+  fi
 }
 
 json_get() {

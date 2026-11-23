@@ -84,7 +84,7 @@ services:
       retries: 20
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/silo:latest
     container_name: ihome-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -98,7 +98,7 @@ services:
       - ihome-minio-data:/data
 
   minio-init:
-    image: minio/mc:latest
+    image: pgsty/mc:latest
     container_name: ihome-minio-init
     depends_on:
       - minio
@@ -116,6 +116,7 @@ services:
 
   # ---------- 微服务（host 网络，兼容 127.0.0.1 绑定与 Consul 注册） ----------
   getCaptcha:
+    image: ihome-getcaptcha:latest
     build:
       context: .
       dockerfile: Dockerfile
